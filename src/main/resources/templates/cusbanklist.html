@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>客户账户管理</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/easyUI/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.form.js"></script>
+    <script type="text/javascript">
+       $(function(){
+    	   $('#dg').datagrid({
+    		    loadMsg: "正在加载数据，请稍等...", 
+    		    url:'../cusbank/query',
+    		    fitColumns:true,
+    		    rownumbers: true,
+    		    toolbar:'#u_toolbar',
+    		    pagination:true,//设置是否分页
+    		    pageList:[10,20,30,50],
+    		    pageSize:20,
+    		    columns:[[
+    		        { title: '', field: '', checkbox:true, width: 100},
+    		        { title: '所属客户', field: 'customer_name', width: 100},
+		            { title: '账号', field: 'cardno', width: 100},  
+		            { title: '账号名称', field: 'cardname', width: 100},  
+		            { title: '省份', field: 'province', width: 100},  
+		            { title: '省市', field: 'city', width: 100},  
+		            { title: '区县', field: 'county', width: 100},  
+		            { title: '是否激活', field: 'active', width: 100,
+		            	formatter: function(value,row,index){
+		            		return value=="1"?"已激活":"<font color='red'>未激活</font>";
+		                }
+		            },
+		            { title: '开户行编号', field: 'bankno', width: 100},
+		            { title: '开户行名称', field: 'bankname', width: 100}
+		            
+    		    ]]
+    		});
+    	   
+    	   //三级联动
+    	   $("#province").combobox({
+    		    onChange: function(newValue,oldValue){
+    	    		   $("#city").combobox({
+    	    			    url:'../cusbank/getAddress',
+    	    			    queryParams:{'pid':newValue},
+    	    			    valueField:'id',
+    	    			    textField:'name'
+    	    		   });
+    			}
+    	   });
+    	   $("#city").combobox({
+	   		    onChange: function(newValue,oldValue){
+	   	    		   $("#county").combobox({
+	   	    			    url:'../cusbank/getAddress',
+	   	    			    queryParams:{'pid':newValue},
+	   	    			    valueField:'id',
+	   	    			    textField:'name'
+	   	    		   });
+	   			}
+   		   });
+       })
+       //查询
+       function search(){
+    	   var qname=$("#s_name").textbox('getValue');
+    	   $('#dg').datagrid({
+    			queryParams: {
+    				url:'../cusbank/query',
+    				qname: qname
+    			}
+    		});
+       }
+       //重置
+       function reSet(){
+    	   $("#s_name").textbox('setValue','');
+    	   search();
+       }
+       //弹出保存模态框
+       function openAddDialog(){
+    	   $('#addOrUpdateForm').form('clear');
+    	   $('#addOrUpdateDialog').dialog('open').dialog('setTitle', '新增账户信息');
+       }
+       //关闭模态框 
+       function dialogClose(){
+   		    $('#addOrUpdateDialog').dialog('close');
+   	   }
+       //提交表单 
+       function submitForm(){
+    	   $('#addOrUpdateForm').form('submit',{
+	   			onSubmit:function(){
+	   				return $(this).form('enableValidation').form('validate');
+	   			},    
+	   		    success:function(data){    
+	   		    	saveOrUpdate();
+	   		    }
+   		   });
+       }
+       function saveOrUpdate(){
+    	    //上传附件需要用jquery.form中的ajaxSubmit方法
+	   		$('#addOrUpdateForm').ajaxSubmit({
+	   	        type: "post",
+	   	        url:"../cusbank/save",
+	   	        dataType : 'text',
+	   	        success: function(data){
+	   	        	if(1==data){
+	   	        		$.messager.alert('提示', '操作成功', 'info');
+	   	        		slide();
+	   	        		$('#addOrUpdateDialog').dialog('close');
+	   	        		$('#dg').datagrid('reload'); 
+	   	        	}else{
+	   	        		$.messager.alert('提示', '操作失败', 'info');
+	   	        	}
+	   	        },
+	   	        error: function(e,a,b){
+	   	        	$.messager.alert('提示', '操作失败', 'error');
+	   	        }
+	   	    });
+       }
+       
+       //删除
+       function del(){
+    	   var idarry=$('#dg').datagrid('getSelections');
+    	   var ids="";
+    	   for(var i in idarry){
+    		   if(ids==""){
+    			   ids+=idarry[i].id;
+    		   }else{
+    			   ids+=","+idarry[i].id;
+    		   }
+    	   }
+    	   if(ids==""){
+    		   $.messager.alert('提示', '请选择要删除的记录!', 'info');
+    		   return;
+    	   }
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../cusbank/del",
+    		   data:{"ids":ids},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res>0){
+    				   $.messager.alert('提示', '操作成功,删除了'+res+'条', 'info');
+    				   $('#dg').datagrid('reload');
+    			   }else{
+    				   $.messager.alert('提示', '操作失败', 'error');
+    			   }
+    		   }
+    	   })
+       }
+       //去修改
+       function updateDialog(){
+    	   var rows=$('#dg').datagrid('getSelections');
+    	   if(rows.length==0){
+    		   $.messager.alert('提示', '请选择要修改的记录!', 'info');
+    		   return;
+    	   }
+    	   if(rows.length>1){
+    		   $.messager.alert('提示', '亲，只能修改一条的记录!', 'info');
+    		   return;
+    	   }
+    	   var id=rows[0].id;
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../cusbank/getObjById",
+    		   data:{"id":id},
+    		   dataType:"json",
+    		   success:function(res){
+    			   $("#id").val(id);
+    			   $("#cid").combobox('setValue',res.cid);
+    			   $("#cardno").textbox('setValue',res.cardno);
+    			   $("#cardname").textbox('setValue',res.cardname);
+    			   $("#province").combobox('setValue',res.province);
+    			   $("#city").combobox('setValue',res.city);
+    			   $("#county").combobox('setValue',res.county);
+    			   $("#bankno").textbox('setValue',res.bankno);
+    			   $("#bankname").textbox('setValue',res.bankname);
+    			   $('#addOrUpdateDialog').dialog('open').dialog('setTitle', '编辑账户信息');
+    		   }
+    	   })
+       }
+       
+       function slide(){
+           $.messager.show({
+               title:'提示',
+               msg:'操作成功',
+               timeout:2000,
+               showType:'slide'
+           });
+       }
+       
+       function toActive(){
+    	   var rows=$('#dg').datagrid('getSelections');
+    	   if(rows.length==0){
+    		   $.messager.alert('提示', '请选择要激活的记录!', 'info');
+    		   return;
+    	   }
+    	   if(rows.length>1){
+    		   $.messager.alert('提示', '亲，只能激活一条的记录!', 'info');
+    		   return;
+    	   }
+    	   var id=rows[0].id;
+    	   var cid=rows[0].cid;//所属客户id
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../cusbank/toActive",
+    		   data:{"id":id,"cid":cid},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res>0){
+    				   $.messager.alert('提示', '操作成功', 'info');
+    				   $('#dg').datagrid('reload');
+    			   }else{
+    				   $.messager.alert('提示', '操作失败', 'error');
+    			   }
+    		   }
+    	   })
+       }
+    </script>
+</head>
+<body class="easyui-layout">
+    <div data-options="region:'center'" style="height: 100%">
+        <!-- 按钮组 -->
+        <div id="u_toolbar">
+             <label>所属客户:</label> <input id="s_name" name="s_name" class="easyui-textbox">
+             <a href="javascript:search()" class="easyui-linkbutton" data-options="iconCls:'icon-search'" >查询</a>
+             <a href="javascript:reSet();" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" >重置</a>
+             <a href="javascript:openAddDialog()" class="easyui-linkbutton" data-options="iconCls:'icon-add'">增加</a>
+             <a href="javascript:del()" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" >删除</a>
+             <a href="javascript:updateDialog()" class="easyui-linkbutton" data-options="iconCls:'icon-edit'">修改</a>
+             <a href="javascript:toActive()" class="easyui-linkbutton" data-options="iconCls:'icon-ok'">激活</a>
+	    </div>
+        <!-- 定义数据列表 -->
+	    <table id="dg" style="height:100%"></table>
+	    <!-- 添加/修改对话框 -->
+		<div id="addOrUpdateDialog" class="easyui-dialog" style="width: 350px; height: 420px; padding: 30px 20px" data-options="iconCls:'icon-man',modal:true,closed:true" >
+			<form id="addOrUpdateForm" method="POST" enctype="multipart/form-data">
+				<input type="hidden" id="id" name="id"/>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>所&nbsp;属&nbsp;客&nbsp;户:</label> <input id="cid" name="cid" class="easyui-combobox"   data-options="valueField:'cid',textField:'customer_name',url:'../cusbank/getCustomers',required:true "/>
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>客&nbsp;户&nbsp;账&nbsp;号:</label> <input id="cardno" name="cardno" class="easyui-textbox" required="true"/>
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>账&nbsp;号&nbsp;名&nbsp;称:</label> <input id="cardname" name="cardname" class="easyui-textbox" required="true"/>
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>开户行省份:</label> <input id="province" name="province" class="easyui-combobox" data-options="valueField:'id',textField:'name',url:'../cusbank/getAddress',queryParams:{'pid':'0'},required:true " />
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>开户行省市:</label> <input id="city" name="city" class="easyui-combobox" data-options="required:true"/>
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>开户行区县:</label> <input id="county" name="county" class="easyui-combobox" />
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+				    <label>开户行编号:</label> <input id="bankno" name="bankno"  class="easyui-textbox" />
+			    </div>
+			    <div style="height: 30px;margin-bottom: 3px;">
+				    <label>开户行名称:</label> <input id="bankname" name="bankname"  class="easyui-textbox" />
+			    </div>
+			</form>
+			<div style="margin: 20px 20px 5px 80px;">
+				<a href="javascript:submitForm()" class="easyui-linkbutton" data-options="iconCls:'icon-save'" >保存</a>
+				<a href="javascript:dialogClose()" class="easyui-linkbutton" iconCls="icon-clear">取消</a>
+			</div>
+		</div>
+    </div>
+    
+</body>
+</html>

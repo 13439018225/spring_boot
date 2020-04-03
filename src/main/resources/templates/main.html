@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>主页面</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/color.css"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/sidemenu_style.css"></link>
+    <link rel="stylesheet" href="../js/highchart/css/themes/dark-unica.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/highchart/highcharts.js"></script>
+    <script type="text/javascript" src="../js/highchart/exporting.js"></script>
+    <style type="text/css">
+    
+    </style>
+    <script type="text/javascript">
+       $(function(){
+    	   //登录
+    	   $("#login").click(function(){
+    		   location.href="../login/tologin";
+    	   })
+    	   //退出
+    	   $("#logout").click(function(){
+    		   location.href="../login/logout";
+    	   })
+    	   //鼠标一定上信息提示框
+    	   $('#uppwd').tooltip({
+    		    position: 'top',
+    		    content: '<span style="color:#fff">单击修改密码</span>',
+    		    onShow: function(){
+    		        $(this).tooltip('tip').css({
+    		            backgroundColor: '#666',
+    		            borderColor: '#666'
+    		        });
+    		    }
+    	   });
+    	   $('#mchage').tooltip({
+	   		    position: 'top',
+	   		    content: '<span style="color:#fff">单击切换菜单</span>',
+	   		    onShow: function(){
+	   		        $(this).tooltip('tip').css({
+	   		            backgroundColor: '#666',
+	   		            borderColor: '#666'
+	   		        });
+	   		    }
+   		   });
+    	   
+    	   //修改密码
+    	   $('#uppwd').click(function(){
+    		   $('#upPwdDialog').dialog('open').dialog('setTitle', '修改密码');
+    	   })
+    	   
+	       //切换菜单   
+	   	   var f=0;
+	   	   $("#eaccordion").hide();
+	   	   $("#mchage").click(function(){
+	   		   if(f==0){
+	   			   $("#etree").hide();
+	   			   $("#eaccordion").show();
+		   		   $('#sm').sidemenu('resize', {
+						width:165
+				   });
+	   			   f=1;
+	   		   }else if(f==1){
+	   			   $("#etree").show();
+	   			   $("#eaccordion").hide();
+	   			   f=0;
+	   		   }
+	   	   })
+           
+	   	   $.ajax({
+	   		   type:"post",
+	   		   url:"../menu/getTreeAuthMenu",
+	   		   data:{},
+	   		   dataType:"json",
+	   		   success:function(res){
+	   			   //动态加载tree菜单
+	   		   	   $("#ett").tree({
+	   			   	    lines:true,
+	   			   	    data:res,
+	   				   	onClick: function(node){
+	   				 		open(node.attributes,node.text,node.iconCls);
+	   				 	}
+	   		   	   });
+	   			   //动态拼接手手风琴菜单
+	   		   	   $('#sm').sidemenu({
+		   		       data: res,
+		   		       width:165,	
+		   		       multiple:false,
+		   		       onSelect:function(node){
+	   				 		open(node.attributes,node.text,node.iconCls);
+	   				   }
+		   		   });
+	   		   }
+	   	   })
+	   	   
+	   	   //右键关闭tab页签的菜单方法 
+	   	   var indx;
+	   	   var len;
+	   	   $('#mm').menu({
+		    	onClick:function(item){
+		    		//alert(item.name);
+			    	if(item.name=='closeSelf'){
+			    		$('#tabs').tabs('close',indx);
+		    	    }else if(item.name=='closeAll'){
+		    	    	for(var i=len-1;i>=0;i--){
+		    	    		$('#tabs').tabs('close',i);
+		    	    	}
+		    	    }else if(item.name=='closeNotSelf'){
+		    	    	for(var i=len-1;i>=0;i--){
+		    	    		if(indx!=i){
+		    	    			$('#tabs').tabs('close',i);
+		    	    		}
+		    	    	}
+		    	    }else if(item.name=='closeRight'){
+		    	    	for(var i=len-1;i>=0;i--){
+		    	    		if(i>indx){
+		    	    			$('#tabs').tabs('close',i);
+		    	    		}
+		    	    	}
+		    	    }else if(item.name=='closeLeft'){
+		    	    	for(var i=len-1;i>=0;i--){
+		    	    		if(i<indx){
+		    	    			$('#tabs').tabs('close',i);
+		    	    		}
+		    	    	}
+		    	    }else if(item.name=='closeExit'){
+		    	    	$('#mm').menu('hide');
+		    	    }
+		        }
+		    });
+   	   
+	   	   //将菜单添加到tab页签中
+	   	   $('#tabs').tabs({
+	   		   onContextMenu: function(e,title,index){
+	   			    indx=index;
+	   			    len=$('#tabs').tabs('tabs').length;
+	   			    e.preventDefault();
+	                $('#mm').menu('show', {
+	                    left: e.pageX,
+	                    top: e.pageY
+	                });
+	   		   }
+	   	   });
+       })
+       //菜单点击方法 
+       function open(url,text,icons){
+    	   if($('#tabs').tabs('exists',text)){
+    		   $('#tabs').tabs('select',text);
+    	   }else{
+    		   if(url!=null && url!=''){
+    			   $('#tabs').tabs('add',{
+	   	       		    title:text,
+	   	       		    content:'<iframe name="content" src='+url+' frameBorder="0" border="0" marginheight=0 marginwidth=0 scrolling= "no" style="width: 100%; height: 99%;" noResize/>',
+	   	       		    closable:true,
+	   	       		    iconCls:icons
+	   	       	   });
+    		   }
+    	   }
+    	   
+       }
+       //显示当前时间
+       function currentTime(){
+	   		var curruntDate=new Date();
+	   		var year=curruntDate.getFullYear();
+	   		var moth=curruntDate.getMonth()+1;
+	   		moth=moth<10?"0"+moth:moth;
+	   		var date=curruntDate.getDate();
+	   		date=date<10?"0"+date:date;
+	   		var hour = curruntDate.getHours(); 
+	   		hour=hour<10?"0"+hour:hour;
+	   		var minute = curruntDate.getMinutes(); 
+	   		minute=minute<10?"0"+minute:minute;
+	   		var second = curruntDate.getSeconds(); 
+	   		second=second<10?"0"+second:second;
+	   		var week = curruntDate.getDay(); 
+	   		var str="";
+	   		if (week == 0) {  
+	   		        str = "星期日";  
+	   		} else if (week == 1) {  
+	   		        str = "星期一";  
+	   		} else if (week == 2) {  
+	   		        str = "星期二";  
+	   		} else if (week == 3) {  
+	   		        str = "星期三";  
+	   		} else if (week == 4) {  
+	   		        str = "星期四";  
+	   		} else if (week == 5) {  
+	   		        str = "星期五";  
+	   		} else if (week == 6) {  
+	   		        str = "星期六";  
+	   		} 
+	   	    $("#curruntTime").html(year+"-"+moth+"-"+date+"&nbsp;&nbsp;"+str+"&nbsp;&nbsp;"+hour+":"+minute+":"+second);
+   	  }
+	  setInterval(currentTime,1000);
+	  
+	  var flag=true;
+	  //密码一致验证
+  	  $.extend($.fn.validatebox.defaults.rules, {
+	            confirmPass: {
+	                validator: function(value, param){
+	                    var pass = $(param[0]).passwordbox('getValue');
+	                    if(value != pass){
+	                    	flag=false;
+	                    }else{
+	                    	flag=true;
+	                    }
+	                    return flag;
+	                },
+	                message: '确认密码与密码不一致!'
+	            }
+	   })
+	  //修改密码
+	  function saveUpPwd(){
+		  //原密码
+		  var oldpass=$("#oldpass").passwordbox('getValue');
+		  //新密码
+		  var pass=$("#pass").passwordbox('getValue');
+		  if(flag){
+			  $.ajax({
+		   		   type:"post",
+		   		   url:"../user/saveUpPwd",
+		   		   data:{"oldpass":oldpass,"pass":pass},
+		   		   dataType:"text",
+		   		   success:function(res){
+		   			   if(res>0){
+		   				   $.messager.alert('提示', '操作成功','info');
+		   				   $('#upPwdDialog').dialog('close');
+		   			   }
+		   		   }
+		   	   })
+		  }
+	  }
+    </script>
+</head>
+<body class="easyui-layout">
+
+<div data-options="region:'north'"  style="height:12%;background-image:url('../images/003.jpg');background-repeat: no-repeat;background-size:100% 100%; ">
+   <div style="margin: 60px 0px 0px 0px;">
+      <div style="float: left;margin-top: 1px;border: 1px solid gray;">
+          <span id="mchage" style="color: white;">切换</span>
+	      <span id="curruntTime" style="padding:2px 10px;color: white;"></span>
+      </div>
+      <div th:if="${session.userinfo} != null" style="float: right;margin-right: 10px;margin-top: 1px;border: 1px solid gray;">
+          <img alt="" src="../js/easyUI/themes/icons/man.png" />
+	      <font color="white">用户 : </font><span style="color: white;" th:text="${session.userinfo.name}"></span>
+          <img alt="" src="../js/easyUI/themes/icons/lock.png" />
+	      <span id="uppwd" style="color: white;">修改密码</span>
+	      <span id="logout" style="color: white;padding-left: 20px;">退出</span>
+		  <span id="login" style="color: white;padding-left: 20px;">登录</span>
+      </div>
+   </div>
+</div>
+<div id="west" data-options="region:'west',split:true" title=" " style="width:12%">
+   <div id="etree">
+      <ul id="ett" class="easyui-tree" data-options="animate:true,lines:true"></ul>
+   </div>
+   
+    <!-- 手风琴 -->
+    <div id="eaccordion" >
+	    <div id="sm" ></div>
+    </div>
+    
+</div>
+<div data-options="region:'center'" >
+   <div id="tabs" class="easyui-tabs" data-options="fit:true">
+	    <div title="首页" data-options="iconCls:'icon-home',closable:true" style="padding:10px;position:relative;overflow:auto;">
+            <div id="chart1" class="easyui-window" title="出借申请" style="width: 50%;height: 49%;left:1%;top:1%;" data-options="inline:true,border:'thin',cls:'c2',minimizable:false">
+		        <script type="text/javascript" src="../js/highchart/higchart01.js"></script>
+	        </div>
+	        <div id="chart2" class="easyui-window" title="划扣统计" style="width: 50%;height: 49%;left:50.5%;top:1%;" data-options="inline:true,border:'thin',cls:'c2',minimizable:false,maximizable:false">
+	            <script type="text/javascript" src="../js/highchart/higchart02.js"></script>
+	        </div>
+	        <div id="chart3" class="easyui-window" title="周统计" style="width: 50%;height: 49%;left:1%;top:50%;" data-options="inline:true,border:'thin',cls:'c2',minimizable:false,maximizable:false">
+	            <script type="text/javascript" src="../js/highchart/higchart03.js"></script>
+	        </div>
+	        <div id="chart4" class="easyui-window" title="月统计" style="width: 50%;height: 49%;left:50.5%;top:50%;" data-options="inline:true,border:'thin',cls:'c2',minimizable:false,maximizable:false">
+	            <script type="text/javascript" src="../js/highchart/higchart04.js"></script>
+	        </div>              
+        </div>
+   </div>
+</div>
+<!-- 右键菜单 -->
+<div id="mm" style="width:150px;">
+    <div data-options="name:'closeSelf',iconCls:'icon-cancel'" >关闭</div>
+    <div data-options="name:'closeAll',iconCls:'icon-no'" >关闭全部</div>
+    <div data-options="name:'closeNotSelf',iconCls:'icon-clear'">除此之外全部关闭</div>
+    <div data-options="name:'closeRight',iconCls:'icon-redo'">关闭右侧</div>
+    <div data-options="name:'closeLeft',iconCls:'icon-back'" >关闭左侧</div>
+    <div data-options="name:'closeExit',iconCls:'icon-print'">退出</div>
+</div>
+<!-- 密码修改弹出框 -->
+<div id="upPwdDialog" class="easyui-window" style="width: 340px; height: 260px; padding: 20px 30px" data-options="iconCls:'icon-lock',modal:true,closed:true,cls:'c5'">
+    <div class="easyui-layout" data-options="fit:true">
+        <div data-options="region:'center'" style="padding:10px;">
+	        <div style="margin-bottom:10px">
+		        <input id="oldpass" class="easyui-passwordbox" prompt="原密码" iconWidth="28" style="width:100%;height:30px;padding:10px;">
+		    </div>
+		    <div style="margin-bottom:10px">
+		        <input id="pass" class="easyui-passwordbox" prompt="新密码" iconWidth="28" style="width:100%;height:30px;padding:10px">
+		    </div>
+		    <div style="margin-bottom:10px">
+		        <input id="cpass" class="easyui-passwordbox" prompt="新密码确认" iconWidth="28" validType="confirmPass['#pass']" style="width:100%;height:30px;padding:10px">
+		    </div>
+        </div>
+        <div data-options="region:'south',border:false" style="text-align:right;padding:3px 0px;">
+              <a class="easyui-linkbutton" data-options="iconCls:'icon-ok'" href="javascript:saveUpPwd()" style="width:80px">Ok</a>
+              <a class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" href="javascript:void(0)"  style="width:80px">Cancel</a>
+        </div>
+     </div>
+</div>
+</body>
+</html>

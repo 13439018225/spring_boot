@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.ICodeMapper">
+    
+    <select id="getCode" parameterType="map" resultType="int">
+       select t.code from B_CODE t where t.reqdate=#{reqdate} and t.type=#{type}
+    </select>
+   
+   <update id="updCode" parameterType="map">
+      update b_code t set t.code=t.code+1 where t.reqdate=#{reqdate} and t.type=#{type}
+   </update>
+  
+   <insert id="insertCode" parameterType="map">
+       insert into B_CODE values (#{reqdate},#{code},#{type})
+   </insert>
+</mapper>

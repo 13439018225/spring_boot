@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>userList</title>
+    <link rel="stylesheet" th:href="@{/js/bootstrap/css/bootstrap.css}"></link>
+    <script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="../js/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+       $(function(){
+    	   //提交模态框表单
+    	   $("#modalsub").click(function(){
+    		    $("form:last").submit();
+    	   })
+       })
+       
+       function toAdd(){
+    	   //弹出模态框
+   		   $('#myModal').modal('show');
+       }
+       function toupdate(id){
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../modelGetObjById",
+    		   data:{"id":id},
+    		   dataType:"json",
+    		   success:function(res){
+    			   //将查询出的数据填充到模态框的表单中 
+    			   $("[type='hidden']").val(id);
+    			   $("#username").val(res.username);
+    			   $("#pwd").val(res.password);
+    			   //弹出模态框
+    	   		   $('#myModal').modal('show');
+    		   }
+    	   })
+       }
+    </script>
+</head>
+<body class="container">
+<br/>
+<h1>用户列表</h1>
+<br/><br/>
+<div class="with:80%">
+    <div>
+        <form class="form-inline" role="form" th:action="@{/query}" method="post">
+		   <div class="form-group">
+		       <label  for="qname">名称</label>
+		       <input type="text" class="form-control" name="qname" id="qname" th:value=${map.name} placeholder="请输入名称">
+		   </div>
+		   <button type="submit" class="btn btn-default">查询</button>
+		   <a href="http://www.baidu.com" th:href="@{/toAdd}" class="btn btn-info">添加</a>
+           <a href="javaScript:toAdd()" class="btn btn-success">模态框</a>
+		</form>
+    </div>
+    <table class="table table-hover  table-bordered">
+        <thead>
+        <tr class='success'>
+            <th>序号</th>
+            <th>id</th>
+            <th>用户名</th>
+            <th>密码</th>
+            <th>
+           
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="user,s: ${ulist}">
+            <td th:text="${s.count}">1</td>
+            <td th:text="${user.id}">100</td>
+            <td th:if="${user.username!=null}" th:text="${user.username}">张三</td>
+            <td th:text="${user.password}">123</td>
+            <td><a th:href="@{/getObjByid(id=${user.id})}">修改</a> 
+                <a th:onclick="'javaScript:toupdate('+${user.id}+')'">模态修改</a>
+                <a th:href="@{/del(id=${user.id})}">删除</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<!-- 模态框（Modal） -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">用户注册</h4>
+            </div>
+            <div class="modal-body">
+               <form role="form" class="form-horizontal" th:action="@{/modelsave}"  method="post">
+                  <input type="hidden" name="id"/>
+				  <div class="form-group">
+					<label for="username" class="col-sm-2 control-label">用户名称</label>
+					<div class="col-sm-10">
+					     <input type="text"  name="username" class="form-control" id="username" placeholder="请输入用户名称" />
+				    </div>
+				  </div>
+				  <div class="form-group">
+					<label for="pwd" class="col-sm-2 control-label">登陆密码</label>
+					<div class="col-sm-10">
+					     <input type="password" name="password" class="form-control" id="pwd"  placeholder="请输入登陆密码" />
+				    </div>
+				  </div>
+				</form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="modalsub">提交更改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

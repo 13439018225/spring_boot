@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.ICusbankMapper">
+
+<!--<cache></cache> -->
+    
+    <select id="query" parameterType="map" resultType="Customer">
+       select t.id,t.cid,c.customer_name,t.cardno,t.cardname,nvl(a.name,t.province) province,nvl(b.name,t.city) city,nvl(d.name,t.county) county,t.active,t.bankname,t.bankno 
+       from b_consumer_bank t 
+       left join b_customer c on t.cid=c.cid 
+       left join b_address a on t.province=a.id and a.pid='0'
+       left join b_address b on t.city=b.id and b.pid!='0'
+       left join b_address d on t.county=d.id and d.pid!='0'
+       <where>
+          <if test="name!=null and name!='' " >
+              c.customer_name like '%${name}%'
+          </if>
+       </where>
+       order by c.customer_name
+   </select>
+   
+   <insert id="add" parameterType="Customer">
+      insert into b_consumer_bank (id,cid,cardno,cardname,province,city,county,active,bankno,bankname) 
+      values(p2p_seq.nextval,#{cid,jdbcType=VARCHAR},#{cardno,jdbcType=VARCHAR},#{cardname,jdbcType=VARCHAR},#{province,jdbcType=VARCHAR},#{city,jdbcType=VARCHAR},
+            #{county,jdbcType=VARCHAR},'0',#{bankno,jdbcType=VARCHAR},#{bankname,jdbcType=VARCHAR})
+   </insert>
+   
+   <update id="update" parameterType="Customer">
+      update b_consumer_bank t 
+      <set>
+         <if test="cid!=null and cid!='' "> t.cid=#{cid},</if>
+         <if test="cardno!=null and cardno!='' "> t.cardno=#{cardno},</if>
+         <if test="cardname!=null and cardname!='' "> t.cardname=#{cardname},</if>
+         <if test="province!=null and province!='' "> t.province=#{province},</if>
+         <if test="city!=null and city!='' "> t.city=#{city},</if>
+         <if test="county!=null and county!='' "> t.county=#{county},</if>
+         <if test="bankno!=null and bankno!='' "> t.bankno=#{bankno},</if>
+         <if test="bankname!=null and bankname!='' "> t.bankname=#{bankname}</if>
+      </set>
+      <where> 
+         t.id=#{id}
+      </where>
+   </update>
+   
+   <delete id="del" parameterType="map">
+      delete from b_consumer_bank t where t.id in (${ids})
+   </delete>
+   
+   <select id="getObjById" parameterType="String" resultType="Customer">
+        select t.id,t.cid,c.customer_name,t.cardno,t.cardname,t.province,t.city,t.county,t.active,t.bankname,t.bankno 
+		from b_consumer_bank t 
+		left join b_customer c on t.cid=c.cid 
+        where t.id=#{id}
+   </select>
+   
+   <select id="getCustomers" resultType="Customer">
+       select c.cid,c.customer_name from b_customer c 
+   </select>
+   
+   <update id="toActive" parameterType="String">
+       update b_consumer_bank t set t.active=decode(t.id,#{0},'1','0') where t.cid=#{1}
+   </update>
+   
+   <!-- 取地址 -->
+   <select id="getAddress" parameterType="String" resultType="Address">
+       select t.id,t.name from b_address t where t.pid=#{pid} order by t.id
+   </select>
+</mapper>

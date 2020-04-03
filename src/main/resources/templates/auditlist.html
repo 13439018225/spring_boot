@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>审核管理</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/easyUI/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.form.js"></script>
+    <script type="text/javascript">
+       $(function(){
+    	   $('#dg').datagrid({
+    		    loadMsg: "正在加载数据，请稍等...", 
+    		    url:'../audit/query',
+    		    fitColumns:true,
+    		    rownumbers: true,
+    		    toolbar:'#u_toolbar',
+    		    pagination:true,//设置是否分页
+    		    pageList:[10,20,30,50],
+    		    singleSelect:true,
+    		    pageSize:20,
+    		    columns:[[
+    		        { title: '所属客户', field: 'cusname', width: 100},
+		            { title: '购买产品', field: 'proname', width: 100},  
+		            { title: '申请单号', field: 'loancode', width: 150},  
+		            { title: '出借日期', field: 'loandate', width: 100},  
+		            { title: '出借金额(￥)', field: 'loanamount', width: 100,align:'right'},  
+		            { title: '记息日期', field: 'coveragedate', width: 100},
+		            { title: '审核人', field: 'auditor', width: 100}, 
+		            { title: '审核日期', field: 'auditordate', width: 100}, 
+		            { title: '状态', field: 'status', width: 100,
+		            	formatter: function(value,row,index){
+		            		//单据状态  0-未提交 1-待审核 2-待划扣  3-审核退回 4-划扣成功 5-划扣失败 6-回款中 7-出借完结
+		            		var s="未提交 ";
+		            		if(value=='1'){
+		            			s="待审核";
+		            		}else if(value=='2'){
+		            			s="待划扣";
+		            		}else if(value=='3'){
+		            			s="审核退回";
+		            		}else if(value=='4'){
+		            			s="划扣成功";
+		            		}else if(value=='5'){
+		            			s="划扣失败";
+		            		}else if(value=='6'){
+		            			s="回款中";
+		            		}else if(value=='7'){
+		            			s="出借完结";
+		            		}
+		            		return s;
+		                }
+		            }
+    		    ]]
+    		});
+       })
+       //查询
+       function search(){
+    	   var qname=$("#s_loancode").textbox('getValue');
+    	   $('#dg').datagrid({
+    			queryParams: {
+    				url:'../audit/query',
+    				qname: qname
+    			}
+    		});
+       }
+       //重置
+       function reSet(){
+    	   $("#s_loancode").textbox('setValue','');
+    	   search();
+       }
+       
+       //去审核
+       function updateDialog(){
+    	   var rows=$('#dg').datagrid('getSelections');
+    	   if(rows.length==0){
+    		   $.messager.alert('提示', '请选择要审核的记录!', 'info');
+    		   return;
+    	   }
+    	   var id=rows[0].id;
+    	  
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../audit/getObjById",
+    		   data:{"id":id},
+    		   dataType:"json",
+    		   success:function(res){
+    			   //{"loan":{"cid":"10240","cusname":"冯德智","id":"10266","loanamount":"1","loancode":"L202003030007","loandate":"2020-03-03 00:00:00.0","pid":"10028","proname":"季度盈","status":"1"},
+    				//"product":{"isshelf":"1","name":"季度盈","period":"2","proceeds":"2.5"},
+    				//"custom":{"address":"啊实打实","cid":"10240","customer_code":"C202002280001","customer_name":"冯德智","email":"111@qq.com","id_card":"1234545566666","mobile":"12344444"},
+    				//"cusbank":{"bankname":"工行","bankno":"300","cardname":"冯德智","cardno":"22222","province":"北京"}}
+    			   var loan=res.loan;
+    			   $("#id").val(id);
+    			   $("#cid").combobox('setValue',loan.cid);
+    			   $("#pid").combobox('setValue',loan.pid);
+    			   $("#loancode").textbox('setValue',loan.loancode);
+    			   $("#loandate").datebox('setValue',loan.loandate);
+    			   $("#loanamount").numberbox('setValue',loan.loanamount);
+    			   
+    			   //产品信息
+    			   var product=res.product;
+    			   $("#pname").text(product.name);
+    			   $("#proceeds").text(product.proceeds);
+    			   $("#isshelf").text(product.isshelf=='1'?'上架':'下架');
+    			   $("#period").text(product.period);
+    			   
+    			   //客户信息
+    			   var custom=res.custom;
+    			   $("#customer_code").text(custom.customer_code);
+      			   $("#customer_name").text(custom.customer_name);
+      			   $("#id_card").text(custom.id_card);
+      			   $("#mobile").text(custom.mobile);
+      			   $("#address").text(custom.address);
+      			   
+      			   //账号信息
+				   var cusbank=res.cusbank;
+				   $("#bankname").text(cusbank.bankname);
+				   $("#cardno").text(cusbank.cardno);
+				   $("#cardname").text(cusbank.cardname);
+				   $("#province").text(cusbank.province);
+				   $("#city").text(cusbank.city);
+				   $("#county").text(cusbank.county);
+				   $("#active").text('已激活');
+    			   $('#addOrUpdateDialog').dialog('open').dialog('setTitle', '审核信息');
+    		   }
+    	   })
+       }
+       
+       //审核
+       function audit(s){
+    	   var id= $("#id").val();
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../audit/toAudit",
+    		   data:{"id":id,"status":s},
+    		   dataType:"json",
+    		   success:function(res){
+    			   if(res>0){
+    				   $('#dg').datagrid('reload'); 
+    				   $('#addOrUpdateDialog').dialog('close');
+    			   }
+    		   }
+    	   })
+       }
+    </script>
+</head>
+<body class="easyui-layout">
+    <div data-options="region:'center'" style="height: 100%">
+        <!-- 按钮组 -->
+        <div id="u_toolbar">
+             <label>单据编号:</label> <input id="s_loancode"  class="easyui-textbox">
+             <a href="javascript:search()" class="easyui-linkbutton" data-options="iconCls:'icon-search'" >查询</a>
+             <a href="javascript:reSet();" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" >重置</a>
+             <a href="javascript:updateDialog()" class="easyui-linkbutton" data-options="iconCls:'icon-edit'">审核</a>
+	    </div>
+        <!-- 定义数据列表 -->
+	    <table id="dg" style="height:100%"></table>
+	    <!-- 添加/修改对话框 -->
+		<div id="addOrUpdateDialog" class="easyui-dialog" style="width: 500px; height: 410px; padding: 10px 20px" data-options="iconCls:'icon-man',modal:true,closed:true" >
+			<div class="easyui-tabs" >
+		        <div title="申请单据" style="padding:10px">
+		            <form id="addOrUpdateForm" >
+						<input type="hidden" id="id" name="id"/>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>出借编号:</label> <input id="loancode" name="loancode" class="easyui-textbox" data-options="readonly:true" />
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>所属客户:</label> <input id="cid" name="cid" class="easyui-combobox"   data-options="valueField:'cid',textField:'customer_name',url:'../cusbank/getCustomers' "/>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>购买产品:</label> <input id="pid" name="pid" class="easyui-combobox"   data-options="valueField:'id',textField:'name',url:'../product/getProducts' "/>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>出借日期:</label> <input id="loandate" name="loandate" class="easyui-datebox" />
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>出借金额:</label> <input id="loanamount" name="loanamount" class="easyui-numberbox" data-options="min:0,precision:2"/>
+						</div>
+					</form>
+		        </div>
+		        <div title="产品信息" style="padding:10px">
+		            <form>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>产品名称:</label> <span id="pname"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>年化收益:</label> <span id="proceeds"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>是否上架:</label> <span id="isshelf"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>购买周期:</label> <span id="period"></span>
+						</div>
+					</form>
+		        </div>
+		        
+		        <div title="客户信息" data-options="iconCls:'icon-man'" style="padding:10px">
+		            <form>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>客户编号:</label> <span id="customer_code"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>客户姓名:</label> <span id="customer_name"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>身份证号:</label> <span id="id_card"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>邮箱:</label> <span id="mobile"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>详细地址:</label> <span id="address"></span>
+						</div>
+					</form>
+		        </div>
+		        
+		        <div title="客户账号信息" data-options="iconCls:'icon-lock'" style="padding:10px">
+		            <form>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>银行名称:</label> <span id="bankname"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>账号:</label> <span id="cardno"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>账号名称:</label> <span id="cardname"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>是否激活:</label> <span id="active"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>开户省份:</label> <span id="province"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>开户省市:</label> <span id="city"></span>
+						</div>
+						<div style="height: 30px;margin-bottom: 3px;">
+							<label>开户区县:</label> <span id="county"></span>
+						</div>
+					</form>
+		        </div>
+		    </div>
+			
+			<div style="margin: 20px 20px 5px 80px;">
+				<a href="javascript:audit(2)" class="easyui-linkbutton" data-options="iconCls:'icon-ok'" >审核通过</a>
+				<a href="javascript:audit(3)" class="easyui-linkbutton" data-options="iconCls:'icon-back'" >审核退回</a>
+			</div>
+		</div>
+    </div>
+    
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>产品管理</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/easyUI/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.form.js"></script>
+    <script type="text/javascript">
+       $(function(){
+    	   $('#dg').datagrid({
+    		    loadMsg: "正在加载数据，请稍等...", 
+    		    url:'../product/query',
+    		    fitColumns:true,
+    		    rownumbers: true,
+    		    toolbar:'#u_toolbar',
+    		    singleSelect: true,
+    		    pagination:true,//设置是否分页
+    		    pageList:[10,20,30,50],
+    		    pageSize:20,
+    		    onClickCell: onClickCell,
+                onEndEdit: onEndEdit,
+    		    columns:[[
+		            { title: '产品名称', field: 'name', width: 100,editor:'textbox'}, 
+		            { title: '收益率', field: 'proceeds', width: 100,editor:{type:'numberbox',options:{precision:2}}}, 
+		            { title: '是否上架', field: 'isshelf', width: 100,editor:{
+                        type:'combobox',
+                        options:{
+                            valueField:'pid',
+                            textField:'pname',
+                            data:[{"pid":"1","pname":"是"},{"pid":"0","pname":"否"}],
+                            required:true
+                        }},formatter: function(value,row,index){
+		            		return value=="1"?"是":"否";
+	                    }
+		            },
+		            { title: '购买周期', field: 'period', width: 100,editor:{type:'numberbox',options:{precision:0}}}
+    		    ]]
+    		});
+       })
+       //查询
+       function search(){
+    	   var qname=$("#s_name").textbox('getValue');
+    	   $('#dg').datagrid({
+    			queryParams: {
+    				url:'../product/query',
+    				qname: qname
+    			}
+    		});
+       }
+       //重置
+       function reSet(){
+    	   $("#s_name").textbox('setValue','');
+    	   search();
+       }
+       function onEndEdit(index, row){
+           var ed = $(this).datagrid('getEditor', {
+               index: index,
+               field: 'isshelf'
+           });
+       }
+       var editIndex = undefined;
+       function endEditing(){
+           if (editIndex == undefined){return true}
+           if ($('#dg').datagrid('validateRow', editIndex)){
+               $('#dg').datagrid('endEdit', editIndex);
+               editIndex = undefined;
+               return true;
+           } else {
+               return false;
+           }
+       }
+       
+       //单元格单击调用方法
+       function onClickCell(index, field){
+           if (editIndex != index){
+               if (endEditing()){
+                   $('#dg').datagrid('selectRow', index).datagrid('beginEdit', index);
+                   var ed = $('#dg').datagrid('getEditor', {index:index,field:field});
+                   if (ed){
+                       ($(ed.target).data('textbox') ? $(ed.target).textbox('textbox') : $(ed.target)).focus();
+                   }
+                   editIndex = index;
+               } else {
+                   setTimeout(function(){
+                       $('#dg').datagrid('selectRow', editIndex);
+                   },0);
+               }
+           }
+       }
+       
+       
+       //增加行
+       function append(){
+            if (endEditing()){
+                $('#dg').datagrid('appendRow',{id:'',isshelf:'1'});
+                editIndex = $('#dg').datagrid('getRows').length-1;
+                $('#dg').datagrid('selectRow', editIndex).datagrid('beginEdit', editIndex);
+            }
+       }
+       //保存
+       function save(){
+           if (endEditing()){
+        	   //获取改变了几行 
+               var rows = $('#dg').datagrid('getChanges');
+               $('#dg').datagrid('acceptChanges');
+               //alert(JSON.stringify(rows));
+               if(rows.length==0){
+            	   $.messager.alert('提示', '没有要保存的数据', 'info');
+            	   return;
+               }
+               $.ajax({
+        		   type:"post",
+        		   url:"../product/save",
+        		   data:{"rows":JSON.stringify(rows)},
+        		   dataType:"text",
+        		   success:function(res){
+        			   if(res>0){
+        				   $.messager.alert('提示', '操作成功,保存了'+res+'条', 'info');
+        			   }else{
+        				   $.messager.alert('提示', '操作失败', 'error');
+        			   }
+        		   }
+        	   })
+           }
+       }
+       //删除行
+       function del(){
+            if (editIndex == undefined){return}
+            var row=$('#dg').datagrid('getSelected');
+            //alert(JSON.stringify(row));
+            $('#dg').datagrid('cancelEdit', editIndex).datagrid('deleteRow', editIndex);
+            editIndex = undefined;
+            $('#dg').datagrid('acceptChanges');
+            //调用ajax删除后台记录 
+            if(row.id!=null && row.id!=''){
+            	romve(row.id);
+            }
+       }
+       //删除
+       function romve(id){
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../product/del",
+    		   data:{"id":id},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res>0){
+    				   $.messager.alert('提示', '操作成功,删除了'+res+'条', 'info');
+    			   }else{
+    				   $.messager.alert('提示', '操作失败', 'error');
+    			   }
+    		   }
+    	   })
+       }
+    </script>
+</head>
+<body class="easyui-layout">
+    <div data-options="region:'center'" style="height: 100%">
+        <!-- 按钮组 -->
+        <div id="u_toolbar">
+             <label>产品名:</label> <input id="s_name" name="s_name" class="easyui-textbox">
+             <a href="javascript:search()" class="easyui-linkbutton" data-options="iconCls:'icon-search'" >查询</a>
+             <a href="javascript:reSet();" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" >重置</a>
+             <a href="javascript:append()" class="easyui-linkbutton" data-options="iconCls:'icon-add'">增加</a>
+             <a href="javascript:del()" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" >删除</a>
+             <a href="javascript:save()" class="easyui-linkbutton" data-options="iconCls:'icon-save'">保存</a>
+	    </div>
+        <!-- 定义数据列表 -->
+	    <table id="dg" style="height:100%"></table>
+    </div>
+    
+</body>
+</html>

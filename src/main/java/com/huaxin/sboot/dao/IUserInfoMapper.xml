@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.IUserInfoMapper">
+
+<!--<cache></cache> -->
+    
+    <insert id="add" parameterType="UserInfo" >
+        insert into t_userinfo(id,username,pwd) values (p2p_seq.nextval,#{username,jdbcType=VARCHAR},#{password,jdbcType=VARCHAR})
+    </insert>
+    
+    <select id="query" parameterType="map" resultType="UserInfo">
+        select t.id,t.username,t.pwd as password from t_userinfo t
+        <where>
+           <if test="name!=null and name!='' ">
+              t.username like '%${name}%'
+           </if>
+        </where>
+    </select>
+    
+    <select id="getObjById" parameterType="String" resultType="UserInfo">
+        select t.id,t.username,t.pwd password from t_userinfo t
+        where t.id=#{0}
+    </select>
+    
+    <delete id="del" parameterType="String" >
+        delete from t_userinfo t where t.id=#{id}
+    </delete>
+    
+    <update id="update" parameterType="UserInfo">
+       update t_userinfo t
+       <set>
+          <if test="username!=null and username!='' ">
+             t.username=#{username}
+          </if>
+          <if test="password!=null and password!='' ">
+             ,t.pwd=#{password}
+          </if>
+       </set>
+       <where>
+          t.id=#{id}
+       </where>
+    </update>
+</mapper>

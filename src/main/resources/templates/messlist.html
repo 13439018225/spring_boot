@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>消息管理</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/easyUI/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.form.js"></script>
+    <script type="text/javascript">
+       $(function(){
+    	   $('#dg').datagrid({
+    		    loadMsg: "正在加载数据，请稍等...", 
+    		    url:'../mess/query',
+    		    fitColumns:true,
+    		    rownumbers: true,
+    		    toolbar:'#u_toolbar',
+    		    pagination:true,//设置是否分页
+    		    pageList:[20,20,30,50],
+    		    pageSize:20,
+    		    columns:[[
+                    { title: '', field: 'id', checkbox:true, width: 100 },
+    		        { title: '申请单据', field: 'lid', width: 100},
+		            { title: '消息类型', field: 'type', width: 100,
+    		        	formatter: function(value,row,index){
+	            		//单据状态  0-短信  1-邮件 
+	            		return value=='0'?'短信':'邮件';
+	                }},  
+		            { title: '消息内容', field: 'context', width: 300},  
+		            { title: '所属模块', field: 'model', width: 100},
+		            { title: '手机号', field: 'tel', width: 100}, 
+		            { title: '邮件', field: 'email', width: 100},
+		            { title: '状态', field: 'status', width: 100,
+    		        	formatter: function(value,row,index){
+    	            		//发送状态  0-未发送  1-已发送
+    	            		return value=='0'?'未发送':'已发送';
+    	                }
+		            } 
+    		    ]]
+    		});
+       })
+       //查询
+       function search(){
+    	   var loancode=$("#s_loancode").textbox('getValue');
+    	   $('#dg').datagrid({
+    			queryParams: {
+    				url:'../mess/query',
+    				loancode: loancode
+    			}
+    		});
+       }
+       //重置
+       function reSet(){
+    	   $("#s_loancode").textbox('setValue','');
+    	   search();
+       }
+      
+       //增加
+       function add(){
+    	   $("#id").val("");
+    	   $("#addOrUpdateDialog").dialog('open').dialog.setTitle('添加消息');
+       }
+       //保存
+       function submitForm(){
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../mess/save",
+    		   data:$("#addOrUpdateForm").serialize(),
+    		   //data:{"lid":lid,"type":type,"context":context,"model":model,"id":id},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res=='1'){
+    				   $("#addOrUpdateDialog").dialog('close');
+    				   $('#dg').datagrid('reload');
+    			   }
+    		   }
+    	   })
+       }
+       //删除
+       function del(){
+    	   var idarry=$('#dg').datagrid('getSelections');
+    	   var ids="";
+    	   for(var i in idarry){
+    		   if(ids==""){
+    			   ids+=idarry[i].id;
+    		   }else{
+    			   ids+=","+idarry[i].id;
+    		   }
+    	   }
+    	   if(ids==""){
+    		   $.messager.alert('提示', '请选择要删除的记录!', 'info');
+    		   return;
+    	   }
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../mess/del",
+    		   data:{"ids":ids},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res>1){
+    				   $('#dg').datagrid('reload');
+    			   }
+    		   }
+    	   })
+       }
+       
+       //修改
+       function update(){
+    	   var idarry=$('#dg').datagrid('getSelections');
+    	   if(idarry.length==0){
+    		   $.messager.alert('提示', '请选择要修改的记录', 'info');
+    		   return ;
+    	   }
+    	   if(idarry.length>1){
+    		   $.messager.alert('提示', '只能修改一条记录', 'info');
+    		   return ;
+    	   }
+    	   var id=idarry[0].id;
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../mess/getObjById",
+    		   data:{"id":id},
+    		   dataType:"json",
+    		   success:function(res){
+    			   //{"context":"csddddd","id":"5e6ef34f9c36d31508488ccf","lid":"001","model":"ss","type":"1"}
+    			   //alert(JSON.stringify(res));
+    			   $("#id").val(id);
+    			   $("#status").val(res.status);
+    			   $("#lid").textbox('setValue',res.lid);
+    	    	   $("#type").combobox('setValue',res.type);
+    	    	   $("#context").textbox('setValue',res.context);
+    	    	   $("#model").textbox('setValue',res.model);
+    	    	   $("#tel").textbox('setValue',res.tel);
+    	    	   $("#email").textbox('setValue',res.email);
+    	    	   $("#addOrUpdateDialog").dialog('open');
+    		   }
+    	   })
+       }
+       
+       //发邮件
+       function sendEmail(){
+    	   var idarry=$('#dg').datagrid('getSelections');
+    	   var ids="";
+    	   for(var i in idarry){
+    		   if(ids==""){
+    			   ids+=idarry[i].id;
+    		   }else{
+    			   ids+=","+idarry[i].id;
+    		   }
+    	   }
+    	   if(ids==""){
+    		   $.messager.alert('提示', '请选择要发邮件的记录!', 'info');
+    		   return;
+    	   }
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../mess/sendEmail",
+    		   data:{"ids":ids},
+    		   dataType:"text",
+    		   success:function(res){
+    			  if(res>0){
+    				  $('#dg').datagrid('reload');
+    			  }
+    		   }
+    	   })
+       }
+       
+       //发短信
+       function sendEms(){
+    	   var idarry=$('#dg').datagrid('getSelections');
+    	   var ids="";
+    	   for(var i in idarry){
+    		   if(ids==""){
+    			   ids+=idarry[i].id;
+    		   }else{
+    			   ids+=","+idarry[i].id;
+    		   }
+    	   }
+    	   if(ids==""){
+    		   $.messager.alert('提示', '请选择要发短信的记录!', 'info');
+    		   return;
+    	   }
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../mess/sendEms",
+    		   data:{"ids":ids},
+    		   dataType:"text",
+    		   success:function(res){
+    			  if(res=='OK'){
+    				  $('#dg').datagrid('reload');
+    			  }
+    		   }
+    	   })
+       }
+       
+    </script>
+</head>
+<body class="easyui-layout">
+    <div data-options="region:'center'" style="height: 100%">
+        <!-- 按钮组 -->
+        <div id="u_toolbar">
+             <label>单据编号:</label> <input id="s_loancode"  class="easyui-textbox">
+             <a href="javascript:search()" class="easyui-linkbutton" data-options="iconCls:'icon-search'" >查询</a>
+             <a href="javascript:reSet();" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" >重置</a>
+             <a href="javascript:add();" class="easyui-linkbutton" data-options="iconCls:'icon-add'" >增加</a>
+             <a href="javascript:del();" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" >删除</a>
+             <a href="javascript:update();" class="easyui-linkbutton" data-options="iconCls:'icon-edit'" >修改</a>
+             <a href="javascript:sendEms();" class="easyui-linkbutton" data-options="iconCls:'icon-ok'" >发短信</a>
+             <a href="javascript:sendEmail();" class="easyui-linkbutton" data-options="iconCls:'icon-ok'" >发邮件</a>
+	    </div>
+        <!-- 定义数据列表 -->
+	    <table id="dg" style="height:100%"></table>
+	    <!-- 添加/修改对话框 -->
+		<div id="addOrUpdateDialog" class="easyui-dialog" style="width: 350px; height: 380px; padding: 30px 20px" data-options="iconCls:'icon-man',modal:true,closed:true" >
+			<form id="addOrUpdateForm" method="POST" enctype="multipart/form-data">
+				<input type="hidden" id="id" name="id"/>
+				<input type="hidden" id="status" name="status"/>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>单据编号:</label> <input id="lid" name="lid" class="easyui-textbox" />
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>手机号码:</label> <input id="tel" name="tel" class="easyui-textbox" />
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>邮箱地址:</label> <input id="email" name="email" class="easyui-textbox" />
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>消息类型:</label> <input id="type" name="type" class="easyui-combobox"   data-options="valueField:'id',textField:'text',data:[{id:'1',text:'邮件'},{id:'0',text:'短信'}] "/>
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>消息内容:</label> <input id="context" name="context" class="easyui-textbox"   />
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>所属模块:</label> <input id="model" name="model" class="easyui-textbox" />
+				</div>
+				
+			</form>
+			<div style="margin: 20px 20px 5px 80px;">
+				<a href="javascript:submitForm()" class="easyui-linkbutton" data-options="iconCls:'icon-save'" >保存</a>
+				<a href="javascript:dialogClose()" class="easyui-linkbutton" iconCls="icon-clear">取消</a>
+			</div>
+		</div>
+    </div>
+</body>
+</html>

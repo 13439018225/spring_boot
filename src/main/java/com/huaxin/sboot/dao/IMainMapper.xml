@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.IMainMapper">
+    
+    <select id="getChartcolumn" resultType="Map">
+        /*第一天*/
+		select a.loandate name, max(a.loanamount) as y from b_loanapplication a 
+		where a.loandate=to_date(to_char(sysdate-4,'yyyy-MM-dd'),'yyyy-MM-dd') group by a.loandate
+		union 
+		/*第二天*/
+		select a.loandate name, max(a.loanamount) y from b_loanapplication a 
+		where a.loandate=to_date(to_char(sysdate-3,'yyyy-MM-dd'),'yyyy-MM-dd') group by a.loandate
+		union 
+		/*第三天*/
+		select a.loandate name, max(a.loanamount) y from b_loanapplication a 
+		where a.loandate=to_date(to_char(sysdate-2,'yyyy-MM-dd'),'yyyy-MM-dd') group by a.loandate
+		union 
+		/*第四天*/
+		select a.loandate name, max(a.loanamount) y from b_loanapplication a 
+		where a.loandate=to_date(to_char(sysdate-1,'yyyy-MM-dd'),'yyyy-MM-dd') group by a.loandate
+		union 
+		/*第五天*/
+		select a.loandate name, max(a.loanamount) y from b_loanapplication a 
+		where a.loandate=to_date(to_char(sysdate,'yyyy-MM-dd'),'yyyy-MM-dd') group by a.loandate
+  
+    </select>
+    
+    
+    <select id="getChartpie" resultType="map">
+        select round(count(*)/(select count(*) from b_loanapplication a ),4)*100 y,
+		nvl(d.name,c.province) name
+		from b_loanapplication a 
+		left join b_customer b on a.cid=b.cid
+		left join B_CONSUMER_BANK c on b.cid=c.cid and c.active='1'
+		left join b_address d on c.province=d.id and d.pid='0'
+		group by d.name,c.province
+        order by y desc
+    </select>
+    
+    <select id="getChartline" resultType="map">
+        select to_char(a.loandate,'MM') month ,count(*) value 
+		from  b_loanapplication a 
+		where to_char(a.loandate,'yyyy')=to_char(sysdate,'yyyy')
+		group by to_char(a.loandate,'MM')
+		order by month
+    </select>
+</mapper>

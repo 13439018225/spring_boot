@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.IUserMapper">
+
+<!--<cache></cache> -->
+    
+    <select id="query" parameterType="map" resultType="User">
+       select a.id,a.username name,a.email,a.sex,a.qq,a.weixin,to_char(a.regtime,'yyyy-mm-dd') regtime,a.enable,a.filepath 
+       from t_sys_user a 
+       <where>
+          <if test="name!=null and name!='' " >
+              a.username like '%${name}%'
+          </if>
+       </where>
+       order by a.username
+   </select>
+   
+   <insert id="add" parameterType="User">
+      insert into t_sys_user (id,username,password,email,sex,qq,weixin,regtime,enable,filepath) 
+      values(p2p_seq.nextval,#{name},#{password},#{email,jdbcType=VARCHAR},#{sex,jdbcType=VARCHAR},#{qq,jdbcType=VARCHAR},
+            #{weixin,jdbcType=VARCHAR},to_date(#{regtime},'yyyy-mm-dd'),#{enable,jdbcType=VARCHAR},#{filepath,jdbcType=VARCHAR})
+   </insert>
+   
+   <update id="update" parameterType="User">
+      update t_sys_user t 
+      <set>
+         <if test="name!=null and name!='' "> t.username=#{name},</if>
+         <if test="password!=null and password!='' "> t.password=#{password},</if>
+         <if test="email!=null and email!='' "> t.email=#{email},</if>
+         <if test="sex!=null and sex!='' "> t.sex=#{sex},</if>
+         <if test="qq!=null and qq!='' "> t.qq=#{qq},</if>
+         <if test="weixin!=null and weixin!='' "> t.weixin=#{weixin},</if>
+         <if test="regtime!=null and regtime!='' "> t.regtime=to_date(#{regtime},'yyyy-mm-dd'),</if>
+         <if test="filepath!=null and filepath!='' "> t.filepath=#{filepath},</if>
+         <if test="enable!=null and enable!='' "> t.enable=#{enable}</if>
+      </set>
+      <where> 
+         t.id=#{id}
+      </where>
+   </update>
+   
+   <delete id="del" parameterType="map">
+      delete from t_sys_user t where t.id in (${ids})
+   </delete>
+   
+   <delete id="delUserRoleRel" parameterType="map">
+      delete from t_sys_user_role t where t.userid in (${ids})
+   </delete>
+   
+   <select id="getObjById" parameterType="String" resultType="User">
+       select t.id,t.username name,t.password,t.email,t.sex,t.qq,t.weixin,t.regtime,t.enable,t.filepath from t_sys_user t where t.id=#{id}
+   </select>
+   
+   
+   <update id="updatePwd" parameterType="User" >
+      update t_sys_user t 
+      <set>
+         t.id=t.id
+         <if test="password!=null and password!='' "> ,t.password=#{password}</if>
+      </set>
+      <where> 
+         t.id=#{id}
+      </where>
+   </update>
+   
+   <insert id="saveUserRole" parameterType="String">
+       insert into t_sys_user_role values (p2p_seq.nextval,#{0},#{1})
+   </insert>
+
+   <delete id="delUserRole" parameterType="String">
+       delete from t_sys_user_role t where t.userid=#{userid}
+   </delete>
+   
+   <!-- 修改密码 -->
+   <update id="saveUpPwd" parameterType="map">
+       update t_sys_user t set t.password=#{pwd} where t.id=#{id} and t.password=#{oldpwd}
+   </update>
+   
+   <select id="findRoles" parameterType="String" resultType="String">
+        select b.name from t_sys_user_role t 
+		left join t_sys_user a on t.userid=a.id
+		left join t_sys_role b on t.roleid=b.id
+		where a.username=#{0}
+   </select>
+   
+   <select id="findPermissions" parameterType="String" resultType="String">
+        select d.permision from t_sys_perm_role a 
+		left join t_sys_user_role b on a.roleid=b.roleid
+		left join t_sys_user c on b.userid=c.id
+		left join t_sys_permission d on a.perid=d.perid
+		where c.username=#{0}
+   </select>
+   
+   <select id="findByUsername" parameterType="String" resultType="User">
+      select a.id,a.username as name,a.password,a.email,a.qq,a.weixin,a.state from t_sys_user a where a.username=#{0}
+   </select>
+   
+   <update id="updateStateByUserName" parameterType="String">
+       update t_sys_user t set t.state=#{0} where t.username=#{1}
+   </update>
+   
+   <update id="updateState" parameterType="map">
+        update t_sys_user t set t.state=#{newstate} 
+        <where>
+           <if test="oldstate!=null and oldstate!='' ">
+              t.state=#{oldstate}
+           </if>
+        </where>
+   </update>
+</mapper>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.ILoginMapper">
+
+<!--<cache></cache> -->
+    
+   <select id="login" parameterType="User" resultType="User">
+       select t.id,t.username as name,t.password,t.email,t.sex,t.qq,t.weixin,t.filepath from t_sys_user t 
+       where t.username=#{name} and t.password=#{password}
+   </select>
+   
+   <update id="reUpPwd" parameterType="User">
+       update t_sys_user t set t.password=#{password} where t.username=#{name}
+   </update>
+</mapper>

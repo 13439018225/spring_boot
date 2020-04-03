@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache name="shirocache">
+    <diskStore path="java.io.tmpdir" />
+    <!-- 登录失败次数缓存 
+                      注意 timeToLiveSeconds 设置为180秒 也就是3分钟 
+                      
+         timeToIdleSeconds 当对象自从最近一次被访问后，
+                       如果处于空闲状态的时间超过了timeToIdleSeconds属性值，这个对象就会过期             
+    -->
+    <cache name="passwordRetryCache"
+           maxEntriesLocalHeap="2000"
+           eternal="false"
+           timeToIdleSeconds="150"
+           timeToLiveSeconds="180"
+           overflowToDisk="false"
+           statistics="true">
+    </cache>
+</ehcache>

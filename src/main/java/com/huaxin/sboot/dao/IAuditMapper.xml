@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.IAuditMapper">
+
+<!--<cache></cache> -->
+    
+    <select id="query" parameterType="map" resultType="LoanApply">
+        select t.id,t.cid,c.customer_name cusname,t.pid,p.name proname,t.loancode,to_char(t.loandate,'yyyy-MM-dd') loandate,t.loanamount,to_char(t.coveragedate,'yyyy-MM-dd') coveragedate,
+		t.auditor,to_char(t.auditordate,'yyyy-MM-dd') auditordate,t.status from b_loanapplication t
+		left join b_customer c on t.cid=c.cid 
+		left join b_product p on t.pid=p.id
+       <where>
+          <if test="loancode!=null and loancode!='' " >
+              t.loancode like '%${loancode}%'
+          </if>
+          and t.status='1'
+       </where>
+       order by t.loancode desc
+   </select>
+   
+   <select id="getObjById" parameterType="String" resultType="LoanApply">
+        select t.id,t.cid,c.customer_name cusname,t.pid,p.name proname,t.loancode,t.loandate,t.loanamount,t.coveragedate,
+		t.auditor,t.auditordate,t.status from b_loanapplication t
+		left join b_customer c on t.cid=c.cid 
+		left join b_product p on t.pid=p.id
+        where t.id=#{id}
+   </select>
+   
+   <update id="toAudit" parameterType="Map">
+       update b_loanapplication t set t.status=#{status},t.auditor=#{auditor},t.auditordate=#{auditordate} where t.id=#{id}
+   </update>
+  
+   <select id="getProductById" parameterType="String" resultType="Product">
+       select p.name,p.proceeds,p.isshelf,p.period from b_product  p where p.id=#{pid}
+   </select>
+
+   <select id="getCusBanktById" parameterType="String" resultType="Customer">
+       select t.cardno,t.cardname,nvl(p.name,t.province) province,nvl(c.name,t.city) city,nvl(x.name,t.county) county,t.bankno,t.bankname 
+		from b_consumer_bank t 
+		left join b_address p on  t.province=p.id and p.pid='0'
+		left join b_address c on  t.city=c.id and c.pid!='0'
+		left join b_address x on  t.county=x.id and x.pid!='0'
+		where t.cid=#{cid} and t.active='1'
+   </select>
+</mapper>

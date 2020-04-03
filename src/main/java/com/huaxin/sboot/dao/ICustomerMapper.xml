@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.ICustomerMapper">
+
+<!--<cache></cache> -->
+    
+    <select id="query" parameterType="map" resultType="Customer">
+       select t.cid,t.customer_code,t.customer_name,t.id_card,t.mobile,t.email,t.address 
+       from b_customer t  
+       <where>
+          <if test="name!=null and name!='' " >
+              t.customer_name like '%${name}%'
+          </if>
+       </where>
+       order by t.customer_code desc
+   </select>
+   
+   <insert id="add" parameterType="Customer">
+      insert into b_customer (cid,customer_code,customer_name,id_card,mobile,email,address) 
+      values(p2p_seq.nextval,#{customer_code,jdbcType=VARCHAR},#{customer_name,jdbcType=VARCHAR},#{id_card,jdbcType=VARCHAR},#{mobile,jdbcType=VARCHAR},#{email,jdbcType=VARCHAR},
+            #{address,jdbcType=VARCHAR})
+   </insert>
+   
+   <update id="update" parameterType="Customer">
+      update b_customer t 
+      <set>
+         <if test="customer_code!=null and customer_code!='' "> t.customer_code=#{customer_code},</if>
+         <if test="customer_name!=null and customer_name!='' "> t.customer_name=#{customer_name},</if>
+         <if test="id_card!=null and id_card!='' "> t.id_card=#{id_card},</if>
+         <if test="mobile!=null and mobile!='' "> t.mobile=#{mobile},</if>
+         <if test="email!=null and email!='' "> t.email=#{email},</if>
+         <if test="address!=null and address!='' "> t.address=#{address}</if>
+      </set>
+      <where> 
+         t.cid=#{cid}
+      </where>
+   </update>
+   
+   <delete id="del" parameterType="map">
+      delete from b_customer t where t.cid in (${ids})
+   </delete>
+   
+   <delete id="delCustomerBank" parameterType="map">
+      delete from b_consumer_bank t where t.cid in (${ids})
+   </delete>
+   
+   
+   <select id="getObjById" parameterType="String" resultType="Customer">
+       select t.cid,t.customer_code,t.customer_name,t.id_card,t.mobile,t.email,t.address 
+       from b_customer t  where t.cid=#{id}
+   </select>
+   
+</mapper>

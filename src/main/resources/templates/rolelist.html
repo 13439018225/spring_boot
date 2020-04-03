@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>角色管理</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/easyUI/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.form.js"></script>
+    <script type="text/javascript">
+       $(function(){
+    	   $('#dg').datagrid({
+    		    loadMsg: "正在加载数据，请稍等...", 
+    		    url:'../role/query',
+    		    fitColumns:true,
+    		    rownumbers: true,
+    		    toolbar:'#u_toolbar',
+    		    singleSelect: true,
+    		    pagination:true,//设置是否分页
+    		    pageList:[10,20,30,50],
+    		    pageSize:20,
+    		    onClickCell: onClickCell,
+                onEndEdit: onEndEdit,
+    		    columns:[[
+		            { title: '角色名', field: 'name', width: 100,editor:'textbox'},  
+		            { title: '操作', field: 'id', width: 100,
+		            	formatter: function(value,row,index){
+		            		var str = "";
+		            		str +="  <a href=\"javascript:authmenu('"+value+"')\">角色菜单 </a>  ";
+		            		return str;
+		    			}
+					}
+    		    ]]
+    		});
+       })
+       //查询
+       function searchUser(){
+    	   var qname=$("#s_username").textbox('getValue');
+    	   $('#dg').datagrid({
+    			queryParams: {
+    				url:'../role/query',
+    				qname: qname
+    			}
+    		});
+       }
+       //重置
+       function reSet(){
+    	   $("#s_username").textbox('setValue','');
+    	   searchUser();
+       }
+       function onEndEdit(index, row){
+           var ed = $(this).datagrid('getEditor', {
+               index: index,
+               field: 'name'
+           });
+       }
+       var editIndex = undefined;
+       function endEditing(){
+           if (editIndex == undefined){return true}
+           if ($('#dg').datagrid('validateRow', editIndex)){
+               $('#dg').datagrid('endEdit', editIndex);
+               editIndex = undefined;
+               return true;
+           } else {
+               return false;
+           }
+       }
+       
+       //单元格单击调用方法
+       function onClickCell(index, field){
+           if (editIndex != index){
+               if (endEditing()){
+                   $('#dg').datagrid('selectRow', index).datagrid('beginEdit', index);
+                   var ed = $('#dg').datagrid('getEditor', {index:index,field:field});
+                   if (ed){
+                       ($(ed.target).data('textbox') ? $(ed.target).textbox('textbox') : $(ed.target)).focus();
+                   }
+                   editIndex = index;
+               } else {
+                   setTimeout(function(){
+                       $('#dg').datagrid('selectRow', editIndex);
+                   },0);
+               }
+           }
+       }
+       
+       
+       //增加行
+       function append(){
+            if (endEditing()){
+                $('#dg').datagrid('appendRow',{id:''});
+                editIndex = $('#dg').datagrid('getRows').length-1;
+                $('#dg').datagrid('selectRow', editIndex).datagrid('beginEdit', editIndex);
+            }
+       }
+       //保存
+       function save(){
+           if (endEditing()){
+        	   //获取改变了几行 
+               var rows = $('#dg').datagrid('getChanges');
+               $('#dg').datagrid('acceptChanges');
+               //alert(JSON.stringify(rows));
+               if(rows.length==0){
+            	   $.messager.alert('提示', '没有要保存的数据', 'info');
+            	   return;
+               }
+               $.ajax({
+        		   type:"post",
+        		   url:"../role/save",
+        		   data:{"rows":JSON.stringify(rows)},
+        		   dataType:"text",
+        		   success:function(res){
+        			   if(res>0){
+        				   $.messager.alert('提示', '操作成功,保存了'+res+'条', 'info');
+        			   }else{
+        				   $.messager.alert('提示', '操作失败', 'error');
+        			   }
+        		   }
+        	   })
+           }
+       }
+       //删除行
+       function del(){
+            if (editIndex == undefined){return}
+            var row=$('#dg').datagrid('getSelected');
+            //alert(JSON.stringify(row));
+            $('#dg').datagrid('cancelEdit', editIndex).datagrid('deleteRow', editIndex);
+            editIndex = undefined;
+            $('#dg').datagrid('acceptChanges');
+            //调用ajax删除后台记录 
+            if(row.id!=null && row.id!=''){
+            	romve(row.id);
+            }
+       }
+       //删除
+       function romve(id){
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../role/del",
+    		   data:{"id":id},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res>0){
+    				   $.messager.alert('提示', '操作成功,删除了'+res+'条', 'info');
+    			   }else{
+    				   $.messager.alert('提示', '操作失败', 'error');
+    			   }
+    		   }
+    	   })
+       }
+       //授权菜单 
+       function authmenu(id){
+    	   $('#tr').tree({
+    		    checkbox:true,
+    		    queryParams:{"roleid":id},
+    		    url:'../role/getauthmenu'
+    	   });
+    	   //将角色ID，放到隐藏对象中
+    	   $("#roleid").val(id);
+    	   $('#authMenuWin').window('open');
+       }
+       //保存角色分配的菜单
+       function saveauthmenu(){
+    	   //角色ID
+    	   var roleid=$("#roleid").val();
+    	   //菜单选中节点
+    	   var mids="";
+    	   var nodes = $('#tr').tree('getChecked');
+    	   for(var i in nodes){
+    		   var node=nodes[i];
+    		   if(mids==""){
+				   mids+=node.id;
+			   }else{
+				   mids+=","+node.id;
+			   }
+    	   }
+    	   if(mids!=""){
+    		   $.ajax({
+        		   type:"post",
+        		   url:"../role/saveAuthMenu",
+        		   data:{"roleid":roleid,"mids":mids},
+        		   dataType:"text",
+        		   success:function(res){
+        			   if(res>0){
+        				   $.messager.alert('提示', '操作成功,更新了'+res+'条', 'info');
+        				   $('#authMenuWin').window('close');
+        			   }else{
+        				   $.messager.alert('提示', '操作失败', 'error');
+        			   }
+        			   
+        		   }
+        	   })
+    	   }
+       }
+       function slide(){
+           $.messager.show({
+               title:'提示',
+               msg:'操作成功',
+               timeout:3000,
+               showType:'slide'
+           });
+       }
+    </script>
+</head>
+<body class="easyui-layout">
+    <div data-options="region:'center'" style="height: 100%">
+        <!-- 按钮组 -->
+        <div id="u_toolbar">
+             <label>用户名:</label> <input id="s_username" name="s_username" class="easyui-textbox">
+             <a href="javascript:searchUser()" class="easyui-linkbutton" data-options="iconCls:'icon-search'" >查询</a>
+             <a href="javascript:reSet();" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" >重置</a>
+             <a href="javascript:append()" class="easyui-linkbutton" data-options="iconCls:'icon-add'">增加</a>
+             <a href="javascript:del()" class="easyui-linkbutton" data-options="iconCls:'icon-remove',plain:true" >删除</a>
+             <a href="javascript:save()" class="easyui-linkbutton" data-options="iconCls:'icon-save'">保存</a>
+	    </div>
+        <!-- 定义数据列表 -->
+	    <table id="dg" style="height:100%"></table>
+	    <!-- 菜单树 模态框 -->
+	    <div id="authMenuWin" class="easyui-window" title="角色菜单" style="width: 320px; height: 500px; padding: 10px 20px" data-options="modal:true,closed:true" >
+			<!-- 菜单树 -->
+			<ul id="tr" class="easyui-tree" data-options="animate:true,lines:true"></ul>
+			<input type="hidden" id="roleid"/>
+			<a class="easyui-linkbutton" data-options="iconCls:'icon-ok'" onclick="javascript:saveauthmenu()" style="width:80px;margin-top: 10px;">保存</a>
+		</div>
+    </div>
+    
+</body>
+</html>

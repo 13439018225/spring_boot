@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>划扣管理</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/easyUI/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.form.js"></script>
+    <script type="text/javascript">
+       var r="";
+       $(function(){
+    	   $('#dg').datagrid({
+    		    loadMsg: "正在加载数据，请稍等...", 
+    		    url:'../deduct/query',
+    		    fitColumns:true,
+    		    rownumbers: true,
+    		    toolbar:'#u_toolbar',
+    		    pagination:true,//设置是否分页
+    		    pageList:[10,20,30,50],
+    		    pageSize:20,
+    		    columns:[[
+                    { title: '', field: '', checkbox:true, width: 100},
+    		        { title: '所属客户', field: 'cusname', width: 100},
+		            { title: '购买产品', field: 'proname', width: 100},  
+		            { title: '申请单号', field: 'loancode', width: 150},  
+		            { title: '出借日期', field: 'loandate', width: 100},  
+		            { title: '出借金额(￥)', field: 'loanamount', width: 100,align:'right'},  
+		            { title: '记息日期', field: 'coveragedate', width: 100},
+		            { title: '审核人', field: 'auditor', width: 100}, 
+		            { title: '审核日期', field: 'auditordate', width: 100},
+		            { title: '预约时间', field: 'appointdate', width: 120},
+		            { title: '状态', field: 'status', width: 100,
+		            	formatter: function(value,row,index){
+		            		//单据状态  0-未提交 1-待审核 2-待划扣  3-审核退回 4-划扣成功 5-划扣失败 6-回款中 7-出借完结
+		            		var s="未提交 ";
+		            		if(value=='1'){
+		            			s="待审核";
+		            		}else if(value=='2'){
+		            			s="待划扣";
+		            		}else if(value=='3'){
+		            			s="审核退回";
+		            		}else if(value=='4'){
+		            			s="划扣成功";
+		            		}else if(value=='5'){
+		            			s="划扣失败";
+		            		}else if(value=='6'){
+		            			s="回款中";
+		            		}else if(value=='7'){
+		            			s="出借完结";
+		            		}
+		            		return s;
+		                }
+		            },
+		            { title: '操作', field: 'id', width: 100,formatter: function(value,row,index){
+	            		var str="<a href='javaScript:getDeductRecord(\""+value+"\")' >划扣记录 </a>";
+	            		return str;
+	                }}
+    		    ]]
+    		});
+       })
+       //查询
+       function search(){
+    	   var qname=$("#s_loancode").textbox('getValue');
+    	   $('#dg').datagrid({
+    			queryParams: {
+    				url:'../deduct/query',
+    				qname: qname
+    			}
+    		});
+       }
+       //重置
+       function reSet(){
+    	   $("#s_loancode").textbox('setValue','');
+    	   search();
+       }
+       
+       //去划扣
+       function toDeduct(){
+    	   var rows=$('#dg').datagrid('getSelections');
+    	   if(rows.length==0){
+    		   $.messager.alert('提示', '请选择要划扣的记录!', 'info');
+    		   return;
+    	   }
+    	   var ids="";
+    	   for(var i in rows){
+    		   if(ids==""){
+    			   ids+=rows[i].id;
+    		   }else{
+    			   ids+=","+rows[i].id;
+    		   }
+    	   }
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../deduct/toDeduct",
+    		   data:{"ids":ids},
+    		   dataType:"text",
+    		   success:function(res){
+    			   $.messager.alert('提示', res, 'info');
+    			   $('#dg').datagrid('reload');
+    		   }
+    	   })
+       }
+       
+       //划扣记录
+       function getDeductRecord(id){
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../deduct/getDeductRecord",
+    		   data:{"id":id},
+    		   dataType:"json",
+    		   success:function(res){
+    			   $('#recordGrid').datagrid({
+    	     			data: res
+    	     	   });
+    			   $('#recordGrid').datagrid('reload');
+    			   $('#recordWindow').window('open');
+    		   }
+    	   })
+       }
+       
+       function toAppoint(){
+    	   var rows=$('#dg').datagrid('getSelections');
+    	   if(rows.length==0){
+    		   $.messager.alert('提示', '请选择要预约的记录!', 'info');
+    		   return;
+    	   }
+    	   var ids="";
+    	   for(var i in rows){
+    		   if(ids==""){
+    			   ids+=rows[i].id;
+    		   }else{
+    			   ids+=","+rows[i].id;
+    		   }
+    	   }
+    	   $("#ids").val(ids);
+    	   $("#appointDateDialog").dialog('open').dialog('setTitle', '预约日期');
+       }
+       //保存预约日期
+       function saveAppointdate(){
+    	   var ids=$("#ids").val();
+    	   var appionDateTime=$("#appionDateTime").datetimebox('getValue');
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../deduct/saveAppiontDate",
+    		   data:{"ids":ids,"appionDateTime":appionDateTime},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res>'0'){
+    				   $("#appointDateDialog").dialog('close');
+    				   $('#dg').datagrid('reload');
+    			   }
+    		   }
+    	   })
+       }
+    </script>
+</head>
+<body class="easyui-layout">
+    <div data-options="region:'center'" style="height: 100%">
+        <!-- 按钮组 -->
+        <div id="u_toolbar">
+             <label>单据编号:</label> <input id="s_loancode"  class="easyui-textbox">
+             <a href="javascript:search()" class="easyui-linkbutton" data-options="iconCls:'icon-search'" >查询</a>
+             <a href="javascript:reSet();" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" >重置</a>
+             <a href="javascript:toDeduct()" class="easyui-linkbutton" data-options="iconCls:'icon-ok'">划扣</a>
+             <a href="javascript:toAppoint()" class="easyui-linkbutton" data-options="iconCls:'icon-add'">预约</a>
+	    </div>
+        <!-- 定义数据列表 -->
+	    <table id="dg" style="height:100%"></table>
+	    <!-- 划扣记录窗口 -->
+	    <div id="recordWindow" class="easyui-window" title="划扣记录" style="width: 900px; height: 400px;" data-options="iconCls:'icon-lock',modal:true,closed:true,cls:'c5'">
+		    <table id="recordGrid" class="easyui-datagrid" style="width:100%;height:100%;padding: 10px 20px;" data-options="fitColumns:true">
+		        <thead>
+		            <tr>
+		                <th data-options="field:'orderNum'">订单号</th>
+		                <th data-options="field:'serialNum'">流水号</th>
+		                <th data-options="field:'loanAmount',align:'right'">划扣金额(￥)</th>
+		                <th data-options="field:'deductRes',">划扣结果</th>
+		                <th data-options="field:'deducttime',align:'center'">划扣日期</th>
+		            </tr>
+		        </thead>
+		    </table>
+		</div>
+		<!-- 预约日期窗口 -->
+		<div id="appointDateDialog" class="easyui-dialog" style="width: 350px; height: 160px; padding: 20px 20px" data-options="modal:true,closed:true,toolbar: [{
+                    text:'保存',
+                    iconCls:'icon-save',
+                    handler:function(){
+                         saveAppointdate();
+                    }
+                }]" >
+            <input type="hidden" id="ids"/>
+			<label>预约日期:</label> <input id="appionDateTime" class="easyui-datetimebox"  data-options="required:true,showSeconds:false"  style="width:65%;">
+		</div>
+    </div>
+    
+</body>
+</html>

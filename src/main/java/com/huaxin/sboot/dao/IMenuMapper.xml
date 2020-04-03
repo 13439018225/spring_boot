@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.IMenuMapper">
+
+<!--<cache></cache> -->
+    
+    <select id="getTreeAuthMenuParent" parameterType="String" resultType="Tree">
+      select m.id,m.name text,m.parentid,m.iconcls iconCls,m.url attributes from t_sys_menu m where m.id in  (
+		select m.parentid from t_sys_user_role t 
+		left join t_sys_role_menu rm on t.roleid=rm.role_id
+		left join t_sys_menu m on rm.menu_id=m.id
+		where m.enable='1' and t.userid=#{userid} 
+	  ) order by m.levelid
+   </select>
+   
+   <select id="getTreeAuthMenuByPid" parameterType="String" resultType="Tree">
+        select m.id,m.name text,m.parentid,m.iconcls iconCls,m.url attributes from t_sys_user_role t 
+		left join t_sys_role_menu rm on t.roleid=rm.role_id
+		left join t_sys_menu m on rm.menu_id=m.id
+		where m.enable='1' and t.userid=#{0} and m.parentid=#{1}
+		order by m.levelid
+   </select>
+   
+   <select id="getAllMenu" parameterType="String" resultType="Tree">
+       select m.id,m.name text,m.parentid,m.iconcls iconCls,m.url attributes from t_sys_menu m where m.parentid=#{id}
+       order by m.levelid
+   </select>
+   
+</mapper>

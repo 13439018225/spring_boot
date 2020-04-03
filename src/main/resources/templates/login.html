@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>登录</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/easyUI/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.form.js"></script>
+    <script type="text/javascript">
+       $(function(){
+    	   $("[type='submit']").mouseover(function(){
+    		     $("#mess").empty();
+    	   })
+    	   
+    	   $(".showdiv").hide();
+    	   
+    	   
+    	   //发送验证码按钮
+    	   $("#but").click(function(){
+    		   //1、发送验证码 
+    		   var username=$('#name').textbox('getValue');
+    		   var tel=$('#tel').textbox('getValue');
+    		   var self=$(this);
+    		   $.ajax({
+    			   type:"post",
+    			   url:"../login/sendCode",
+    			   data:{"tel":tel},
+    			   dataType:'text',
+    			   success:function(res){
+    				   //res=90_OK
+    				   if(res!='' && res.indexOf("_")>0){
+    					   var time=res.substr(0,res.indexOf("_"));
+    					   var status=res.substr(res.indexOf("_")+1,res.length);
+    					   if(status=='OK'){
+    						   //2、出现倒计时
+    			    		   function getTime(){
+    			    			   time--;
+    			    			   //将倒计时展示到页面
+    			    			   self.prop("value","还剩"+time+"秒");
+    			    			   if(time==0){
+    			    				   self.prop("value","重新发送验证码");
+    			    				   self.prop("disabled",false);
+    			    				   self.linkbutton('enable');
+    			    				   clearInterval(timePort);
+    			    			   }
+    			    		   }
+    			    		   var timePort=setInterval(getTime,1000);
+    			    		   if(time>0){
+    			    			   //控制发送验证码按钮不可点击
+    			    			   self.prop("disabled",true);
+    			    			   self.linkbutton('disable');
+    			    		   }
+    					   }
+    				   }
+    			   }
+    		   })
+    	   })
+    	   
+    	   //提交验证码
+    	   $("#subbut").click(function(){
+    		   subValCocde();
+    	   })
+       })
+       
+       //提交验证码
+   	   function subValCocde(){
+    	   //必填项验证 
+    	   var f=$('form').form('enableValidation').form('validate');
+    	   var tel=$('#tel').textbox('getValue');
+   		   var valcode=$('#valiecode').textbox('getValue');
+   		   if(!f){
+   			   return;
+   		   }
+       	   $.ajax({
+   			   type:"post",
+   			   url:"../login/subValCocde",
+   			   data:{"tel":tel,"valcode":valcode},
+   			   dataType:'text',
+   			   success:function(res){
+   				   if(res=='1'){
+   					   //表示验证成功,弹出重置密码框
+   					   var username=$('#name').textbox('getValue');
+   					   $("#username").textbox('setValue',username);
+   					   $("form").hide();
+   					   $('#upPwdDialog').dialog('open');
+   				   }else{
+   					   $.messager.alert('提示', '验证码超时或不正确', 'error');
+   				   }
+   			   }
+       	   })
+   	   }
+       
+      //密码一致验证
+   	  $.extend($.fn.validatebox.defaults.rules, {
+            confirmPass: {
+                validator: function(value, param){
+                    var pass = $(param[0]).passwordbox('getValue');
+                    if(value != pass){
+                    	flag=false;
+                    }else{
+                    	flag=true;
+                    }
+                    return flag;
+                },
+                message: '确认密码与密码不一致!'
+            }
+ 	   })
+       //重置密码
+       function saveUpPwd(){
+   		    var name=$('#username').textbox('getValue');
+   		    var password=$("#pass").passwordbox('getValue');
+	   		$.ajax({
+			   type:"post",
+			   url:"../login/reUpPwd",
+			   data:{"name":name,"password":password},
+			   dataType:'text',
+			   success:function(res){
+				   if(res=='1'){
+					   //跳转到登录
+					   location.href='../login/login?name='+name+'&password='+password;
+				   }else{
+					   $.messager.alert('提示', '操作失败', 'error');
+				   }
+			   }
+	       })
+       }
+       
+       function getCodeTime(){
+    	   //隐藏div
+    	   $(".hidediv").hide();
+    	   $(".showdiv").show();
+    	   
+       }
+    </script>
+    <style type="text/css">
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+		}
+		
+		h1 {
+			color: rgb(128, 128, 128);
+			text-align: center;
+		}
+		a:link, a:hover, a:visited, a:active {
+			color: rgb(128, 128, 128);
+			text-decoration: none;
+		}
+		form {
+			width: 400px;
+			min-width: 400px;
+			position: absolute;
+			left: 35%;
+			top: 15%;
+			margin: 0;
+			padding: 30px;
+			background-color: '#D8BFD8';
+			border: 2px solid rgba(128, 128, 128, 0.2);
+			border-radius: 10px;
+		}
+		form div {
+			margin-bottom: 10px;
+		}
+		#ck{
+		   width: 15px;
+		   height: 15px;
+		}
+		#yzm{
+		   line-height: 30px;
+		   font-size: 15px;
+		   padding: 5px;
+		   letter-spacing: 3px;
+		}
+</style>
+</head>
+<body>
+    <form action="../login/login" method="post">
+        <div>
+            <h1>用户登录</h1>
+        </div>
+        <div>
+            <input id="name" name="name" class="easyui-textbox" data-options="iconCls:'icon-man',iconWidth:30,iconAlign:'left',prompt:'用户名',required:true" style="width:100%;height:35px;" />
+        </div>
+        <div class="hidediv">
+            <input name="password" class="easyui-passwordbox" data-options="iconWidth:30,iconAlign:'left',prompt:'密码'" style="width:100%;height:35px;" />
+        </div>
+        <div class="hidediv">
+            <input id="ck" type="checkbox"/><label>记住我</label>
+            <div style="display:inline;margin-left:180px;">
+                <a href="javascript:getCodeTime();">忘记密码？</a>
+            </div>
+            <div th:if="${message} != null">
+                <span id="mess" th:text="${message}" style="color: red;"></span>
+            </div>
+        </div >
+        <div class="hidediv">
+            <input class="easyui-linkbutton" type="submit" value="登录" style="width:100%;height:35px;" />
+        </div>
+        
+        <div class="showdiv">
+            <input id="tel" name="tel" class="easyui-textbox" style="width:100%;height:35px;" data-options="prompt:'手机号',required:true"  />
+        </div >
+        <div class="showdiv">
+            <label id="yzm">验证码:</label><input class="easyui-textbox" id="valiecode" style="width: 60px;height: 35px;" data-options="required:true"><input id="but" type="button" class="easyui-linkbutton" value="发送验证码" style="width:140px;height:35px;margin-left: 5px;"/>
+            <input id="subbut" type="button" class="easyui-linkbutton" value="确定" style="width:50px;height:35px;"/>
+        </div>
+    </form>
+    
+<!-- 密码修改弹出框 -->
+<div id="upPwdDialog" title="用户密码重置" class="easyui-window" style="width: 340px; height: 260px; padding: 20px 30px" data-options="iconCls:'icon-man',modal:true,closed:true,cls:'c5'">
+    <div class="easyui-layout" data-options="fit:true">
+        <div data-options="region:'center'" style="padding:10px;">
+	        <div style="margin-bottom:10px">
+		        <input id="username" class="easyui-textbox" prompt="用户名" iconWidth="28" style="width:100%;height:30px;padding:10px;">
+		    </div>
+		    <div style="margin-bottom:10px">
+		        <input id="pass" class="easyui-passwordbox" prompt="新密码" iconWidth="28" style="width:100%;height:30px;padding:10px">
+		    </div>
+		    <div style="margin-bottom:10px">
+		        <input id="cpass" class="easyui-passwordbox" prompt="新密码确认" iconWidth="28" validType="confirmPass['#pass']" style="width:100%;height:30px;padding:10px">
+		    </div>
+        </div>
+        <div data-options="region:'south',border:false" style="text-align:right;padding:3px 0px;">
+              <a class="easyui-linkbutton" data-options="iconCls:'icon-ok'" href="javascript:saveUpPwd()" style="width:80px">Ok</a>
+              <a class="easyui-linkbutton" data-options="iconCls:'icon-cancel'" href="javascript:void(0)"  style="width:80px">Cancel</a>
+        </div>
+     </div>
+</div>
+</body>
+</html>

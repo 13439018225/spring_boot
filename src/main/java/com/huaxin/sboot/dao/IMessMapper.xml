@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.IMessMapper">
+    
+    <select id="query" parameterType="map" resultType="Message">
+       select t.id,t.lid,t.context,t.model,t.type from b_message t 
+    </select>
+   
+</mapper>

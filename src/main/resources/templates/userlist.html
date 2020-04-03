@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>用户管理</title>
+    <link rel="stylesheet" th:href="@{/js/easyUI/themes/gray/easyui.css}"></link>
+    <link rel="stylesheet" href="../js/easyUI/themes/icon.css"></link>
+    <script type="text/javascript" th:src="@{/js/easyUI/jquery.min.js}"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../js/easyUI/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="../js/easyUI/jquery.form.js"></script>
+    <script type="text/javascript">
+       $(function(){
+    	   $('#dg').datagrid({
+    		    loadMsg: "正在加载数据，请稍等...", 
+    		    url:'../user/query',
+    		    fitColumns:true,
+    		    rownumbers: true,
+    		    toolbar:'#u_toolbar',
+    		    pagination:true,//设置是否分页
+    		    pageList:[10,20,30,50],
+    		    pageSize:20,
+    		    onDblClickRow: function(index,row){
+    				openinfoDialog(row);
+    			},
+    		    columns:[[
+    		        { title: '', field: '', checkbox:true, width: 100 },
+		            { title: '用户名', field: 'name', width: 100},  
+		            { title: '性别', field: 'sex', width: 60,
+		            	formatter: function(value,row,index){
+		            		var str="";
+		            		if(value=="男"){
+		            			str="<img src='../images/nans.png' style='width: 20px;height: 20px;'>";
+		            		}else{
+		            			str="<img src='../images/nvs.png' style='width: 20px;height: 20px;'>";
+		            		}
+		            		return str;
+	                    }
+		            },  
+		            { title: '邮箱', field: 'email', width: 100},  
+		            { title: 'QQ', field: 'qq', width: 100},  
+		            { title: '微信', field: 'weixin', width: 100},  
+		            { title: '注册日期', field: 'regtime', width: 100},  
+		            { title: '是否启用', field: 'enable', width: 100,
+		            	formatter: function(value,row,index){
+		            		return value=="1"?"已启用":"未启用"
+		                }
+		            },
+		            { title: '附件', field: 'filepath', width: 100,
+		            	formatter: function(value,row,index){
+		            		var str=value==undefined?'':value;
+		            		return " <a href=\"javascript:downloadFile('"+row.id+"')\">"+str+"</a>  ";
+		                }
+		            },
+		            { title: '操作', field: 'id', width: 100,
+		            	formatter: function(value,row,index){
+		            		var str = "";
+		            		str +="  <a href=\"javascript:loadRoleAuthority('"+value+"')\">角色配置</a>  ";
+		            		return str;
+		    			}
+					}
+    		    ]]
+    		});
+       })
+       //查询
+       function searchUser(){
+    	   var qname=$("#s_username").textbox('getValue');
+    	   $('#dg').datagrid({
+    			queryParams: {
+    				url:'../user/query',
+    				qname: qname
+    			}
+    		});
+       }
+       //重置
+       function reSet(){
+    	   $("#s_username").textbox('setValue','');
+    	   searchUser();
+       }
+       //弹出保存模态框
+       function openAddDialog(){
+    	    $('#addOrUpdateForm').form('clear');
+	   		$('#enable').combobox('select',"1");
+	   		$("input[name='sex'][value='男']").prop("checked",true);
+	   		$("#yhzp").attr('src',"../images/mrtx.jpg");
+    	    $('#addOrUpdateDialog').dialog('open').dialog('setTitle', '新增用户');
+       }
+       //关闭模态框 
+       function dialogClose(){
+   		    $('#addOrUpdateDialog').dialog('close');
+   	   }
+       //提交表单 
+       function submitForm(){
+    	   $('#addOrUpdateForm').form('submit',{
+	   			onSubmit:function(){
+	   				return $(this).form('enableValidation').form('validate');
+	   			},    
+	   		    success:function(data){    
+	   		    	saveOrUpdate();
+	   		    }
+   		   });
+       }
+       function saveOrUpdate(){
+    	    //上传附件需要用jquery.form中的ajaxSubmit方法
+	   		$('#addOrUpdateForm').ajaxSubmit({
+	   	        type: "post",
+	   	        url:"../user/save",
+	   	        dataType : 'text',
+	   	        success: function(data){
+	   	        	if(1==data){
+	   	        		$.messager.alert('提示', '操作成功', 'info');
+	   	        		slide();
+	   	        		$('#addOrUpdateDialog').dialog('close');
+	   	        		$('#dg').datagrid('reload'); 
+	   	        	}else{
+	   	        		$.messager.alert('提示', '操作失败', 'info');
+	   	        	}
+	   	        },
+	   	        error: function(e,a,b){
+	   	        	$.messager.alert('提示', '操作失败', 'error');
+	   	        }
+	   	    });
+       }
+       
+       //删除
+       function del(){
+    	   var idarry=$('#dg').datagrid('getSelections');
+    	   var ids="";
+    	   for(var i in idarry){
+    		   if(ids==""){
+    			   ids+=idarry[i].id;
+    		   }else{
+    			   ids+=","+idarry[i].id;
+    		   }
+    		   //alert(JSON.stringify(idarry[i]));
+    	   }
+    	   if(ids==""){
+    		   $.messager.alert('提示', '请选择要删除的记录!', 'info');
+    		   return;
+    	   }
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../user/del",
+    		   data:{"ids":ids},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res>0){
+    				   $.messager.alert('提示', '操作成功,删除了'+res+'条', 'info');
+    				   $('#dg').datagrid('reload');
+    			   }else{
+    				   $.messager.alert('提示', '操作失败', 'error');
+    			   }
+    		   }
+    	   })
+       }
+       //去修改
+       function updateDialog(){
+    	   var rows=$('#dg').datagrid('getSelections');
+    	   if(rows.length==0){
+    		   $.messager.alert('提示', '请选择要修改的记录!', 'info');
+    		   return;
+    	   }
+    	   if(rows.length>1){
+    		   $.messager.alert('提示', '亲，只能修改一条的记录!', 'info');
+    		   return;
+    	   }
+    	   var id=rows[0].id;
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../user/getObjById",
+    		   data:{"id":id},
+    		   dataType:"json",
+    		   success:function(res){
+    			   //{"enable":"1","id":"10084","name":"dms","password":"1","sex":"男"}
+    			   //alert(JSON.stringify(res));
+    			   $("#u_id").val(id);
+    			   $("#u_name").textbox('setValue',res.name);
+    			   $("#u_password").textbox('setValue',res.password);
+    			   $("[type='radio']").each(function(){
+    				   if($(this).val()==res.sex){
+    					   $(this).prop("checked",true);
+    				   }
+    			   })
+    			   $("#regtime").datebox('setValue',res.regtime);
+    			   $("#email").textbox('setValue',res.email);
+    			   $("#qq").textbox('setValue',res.qq);
+    			   $("#weixin").textbox('setValue',res.weixin);
+    			   $("#enable").combobox('setValue',res.enable);
+    			   if(res.filepath==null || res.filepath==undefined){
+    				   $("#yhzp").attr("src","../images/mrtx.jpg");
+    			   }else{
+    				   $("#yhzp").attr("src","../user/downfile?id="+id);
+    			   }
+    			   $('#addOrUpdateDialog').dialog('open').dialog('setTitle', '编辑用户');
+    		   }
+    	   })
+       }
+       //附件下载
+       function downloadFile(id){
+    	   location.href="../user/downfile?id="+id;
+       }
+       
+       //查看信息
+       function openinfoDialog(row){
+    	   //{"enable":"1","id":"10084","name":"dms","sex":"男"}
+    	   //alert(JSON.stringify(row));
+    	   $("#span_name").html("<Strong>"+row.name+"</Strong>");
+    	   $("#span_sex").text(row.sex);
+    	   $("#span_regtime").text(row.regtime);
+    	   $("#span_email").text(row.email);
+    	   $("#span_qq").text(row.qq);
+    	   $("#span_weixin").text(row.weixin);
+    	   $("#span_enable").text(row.enable==1?"已启用":"未启用");
+    	   if(row.filepath==null || row.filepath==undefined){
+			   $("#yhzpinfo").attr("src","../images/mrtx.jpg");
+		   }else{
+			   $("#yhzpinfo").attr("src","../user/downfile?id="+row.id);
+		   }
+    	   $('#infoDialog').dialog('open').dialog('setTitle', '用户信息');
+       } 
+       
+       //导出excel
+       function exportExcel(){
+    	   var qname=$("#s_username").textbox('getValue');
+    	   location.href="../user/exportExcel?name="+qname;
+       }
+       //用户分配角色
+       function loadRoleAuthority(userid){
+    	   $("#userid").val(userid);
+    	   $("#roleDialog").dialog('open').dialog('setTitle', '分配角色');
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../user/getRoles",
+    		   data:{"userid":userid},
+    		   dataType:"json",
+    		   success:function(res){
+    			   var list=res.list;
+    			   var role=res.role;
+    			   $('#comboxRole').combobox({
+    				    data:list,
+    				    valueField:'id',
+    				    textField:'name'
+    			   });
+    			   $('#comboxRole').combobox('setValue',role.id);
+    		   }
+    	   })
+       }
+       //保存用户分配好的角色
+       function saveUserRole(){
+    	   var userid=$("#userid").val();
+    	   var roleid=$('#comboxRole').combobox('getValue');
+    	   $.ajax({
+    		   type:"post",
+    		   url:"../user/saveUserRole",
+    		   data:{"userid":userid,"roleid":roleid},
+    		   dataType:"text",
+    		   success:function(res){
+    			   if(res>0){
+    				   slide();
+    				   $("#roleDialog").dialog('close');
+    			   }else{
+    				   $.messager.alert('提示', '操作失败', 'info');
+    			   }
+    		   },
+	   	       error: function(e,a,b){
+	   	        	$.messager.alert('提示', '操作失败', 'error');
+	   	       }
+    	   })
+       }
+       function slide(){
+           $.messager.show({
+               title:'提示',
+               msg:'操作成功',
+               timeout:2000,
+               showType:'slide'
+           });
+       }
+    </script>
+</head>
+<body class="easyui-layout">
+    <div data-options="region:'center'" style="height: 100%">
+        <!-- 按钮组 -->
+        <div id="u_toolbar">
+             <label>用户名:</label> <input id="s_username" name="s_username" class="easyui-textbox">
+             <shiro:hasPermission name="user:query">
+                <a href="javascript:searchUser()" class="easyui-linkbutton" data-options="iconCls:'icon-search'" >查询</a>
+             </shiro:hasPermission>
+             
+             <a href="javascript:reSet();" class="easyui-linkbutton" data-options="iconCls:'icon-clear'" >重置</a>
+             <a shiro:hasPermission="user:add" href="javascript:openAddDialog()" class="easyui-linkbutton" data-options="iconCls:'icon-add'">增加</a>
+             <a shiro:hasPermission="user:del" href="javascript:del()" class="easyui-linkbutton" data-options="iconCls:'icon-remove'" >删除</a>
+             <a shiro:hasPermission="user:update" href="javascript:updateDialog()" class="easyui-linkbutton" data-options="iconCls:'icon-edit'">修改</a>
+             <a href="javascript:exportExcel()" class="easyui-linkbutton" data-options="iconCls:'icon-redo'">导出EXCEL</a>
+	    </div>
+        <!-- 定义数据列表 -->
+	    <table id="dg" style="height:100%"></table>
+	    <!-- 添加/修改对话框 -->
+		<div id="addOrUpdateDialog" class="easyui-dialog" style="width: 460px; height: 470px; padding: 30px 20px" data-options="iconCls:'icon-man',modal:true,closed:true" >
+			<form id="addOrUpdateForm" method="POST" enctype="multipart/form-data">
+				<input type="hidden" id="u_id" name="id"/>
+				<div  style="position: relative;">
+					<div style="height: 30px;margin-bottom: 3px;">
+						<label>用户姓名:</label> <input id="u_name" name="name" class="easyui-textbox" required="true"/>
+					</div>
+					<div style="height: 30px;margin-bottom: 3px;">
+						<label>用户密码:</label> <input id="u_password" name="password" class="easyui-textbox" required="true"/>
+					</div>
+					<div style="height: 30px;">
+						<label>用户性别:</label>
+						<input  type="radio" name="sex" class="easyui-validatebox" value="男"/><label>男</label>
+						<input  type="radio" name="sex" class="easyui-validatebox" value="女"/><label>女</label>
+					</div>
+					<div style="height: 30px;margin-bottom: 3px;">
+						<label>入职时间:</label> <input id="regtime" name="regtime" class="easyui-datebox"/>
+					</div>
+					<div style="height: 30px;margin-bottom: 3px;">
+						<label>Email:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label> <input id="email" name="email" class="easyui-textbox" validType="email"/>
+					</div>
+				</div>
+				<div style="position: relative;margin:-170px 0 0px 260px;">
+				    <img id="yhzp" alt="用户照片" src="../images/mrtx.jpg" style="width: 130px;height: 170px;"/>
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					    <label>用户  QQ:</label> <input id="qq" name="qq"  class="easyui-textbox" />
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>用户微信:</label> <input id="weixin" name="weixin" class="easyui-textbox"/>
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>是否启用:</label>
+					<select id="enable" name="enable" class="easyui-combobox" panelHeight="auto" style="width: 170px;" >
+						<option  value="1">已启用</option>
+						<option  value="0">未启用</option>
+					</select>
+				</div>
+				<div style="height: 30px;margin-bottom: 3px;">
+					<label>用户照片:</label>
+					<input   name="userfile" size="40" class="easyui-filebox" data-options="prompt:'资料...'" />
+				</div>
+			</form>
+			<div style="margin: 20px 20px 5px 80px;">
+				<a href="javascript:submitForm()" class="easyui-linkbutton" data-options="iconCls:'icon-save'" >保存</a>
+				<a href="javascript:dialogClose()" class="easyui-linkbutton" iconCls="icon-clear">取消</a>
+			</div>
+		</div>
+		
+		<!-- 详细信息模态框 -->
+		<div id="infoDialog" class="easyui-dialog" style="width: 400px; height: 360px; padding: 30px 20px" data-options="iconCls:'icon-save',modal:true,closed:true" >
+			<form id="infoForm" >
+				<div  style="position: relative;">
+					<div style="height: 30px;">
+						<label>用户姓名:</label> <span id="span_name"></span>
+					</div>
+					<div style="height: 30px;">
+						<label>用户性别:</label><span id="span_sex"></span>
+					</div>
+					<div style="height: 30px;">
+						<label>入职时间:</label> <span id="span_regtime"></span>
+					</div>
+					<div style="height: 30px;">
+						<label>Email:&nbsp;&nbsp;&nbsp;&nbsp;</label> <span id="span_email"></span>
+					</div>
+					<div style="height: 30px;">
+					    <label>用户  QQ:</label> <span id="span_qq"></span>
+				    </div>
+				    <div style="height: 30px;">
+					   <label>用户微信:</label> <span id="span_weixin"></span>
+				    </div>
+				    <div style="height: 30px;"> 
+						<label>是否启用:</label><span id="span_enable"></span>
+					</div>
+				</div>
+				<div style="position: relative;margin:-205px 0 0 180px;">
+				    <img id="yhzpinfo" alt="用户照片" src="../images/mrtx.jpg" style="width: 130px;height: 190px;"/>
+				</div>
+				
+			</form>
+		</div>
+		
+		<!-- 分配角色模态框 -->
+		<div id="roleDialog" class="easyui-dialog" style="width: 300px; height: 160px; padding: 20px 20px" data-options="modal:true,closed:true,toolbar: [{
+                    text:'保存',
+                    iconCls:'icon-save',
+                    handler:function(){
+                         saveUserRole();
+                    }
+                }]" >
+            <input type="hidden" id="userid">
+			<label>选择角色:</label> <input id="comboxRole" name="comboxRole" panelHeight="auto">
+		</div>
+    </div>
+    
+</body>
+</html>

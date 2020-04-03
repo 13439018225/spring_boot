@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huaxin.sboot.dao.IProductMapper">
+    
+    <select id="query" parameterType="map" resultType="Product">
+       select t.id,t.name,t.proceeds,t.isshelf,t.period from b_product t 
+       <where>
+          <if test="name!=null and name!='' " >
+              t.name like '%${name}%'
+          </if>
+       </where>
+       order by t.id
+   </select>
+   
+   <insert id="add" parameterType="Product">
+      insert into b_product values(p2p_seq.nextval,#{name,jdbcType=VARCHAR},#{proceeds,jdbcType=VARCHAR},#{isshelf,jdbcType=VARCHAR},#{period,jdbcType=VARCHAR})
+   </insert>
+   
+   <update id="update" parameterType="Product">
+      update b_product t 
+      <set>
+         <if test="name!=null and name!='' "> t.name=#{name}</if>
+         <if test="proceeds!=null and proceeds!='' "> ,t.proceeds=#{proceeds}</if>
+         <if test="isshelf!=null and isshelf!='' "> ,t.isshelf=#{isshelf}</if>
+         <if test="period!=null and period!='' "> ,t.period=#{period}</if>
+      </set>
+      <where> 
+         t.id=#{id}
+      </where>
+   </update>
+   
+   <delete id="del" parameterType="String">
+      delete from b_product t where t.id=#{id}
+   </delete>
+   
+   <select id="getProducts" resultType="Product">
+      select t.id,t.name from b_product t
+   </select>
+</mapper>
