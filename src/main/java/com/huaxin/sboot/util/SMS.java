@@ -23,11 +23,11 @@ import com.aliyuncs.profile.DefaultProfile;
 public class SMS {
 	
 	//AccessKeyId
-	private static final String ACCESSKEYID="LTAI4FgwrVhviSSEbeffPZjv";
+	private static final String ACCESSKEYID="LTAI4FgwrVhviSSfPZjv";
 	//AccessKeySecret
-	private static final String ACCESSKEYSECRET="9aWiS2Z8rP2iZlWgYu1wsJORc8giEZ";
+	private static final String ACCESSKEYSECRET="9aWiS2Z8rP2iZlWgYuRc8giEZ";
 	//模板类型 短息验证码类型
-	private static final String TEMPLATECODE="SMS_184631142"; 
+	private static final String TEMPLATECODE="SMS_184631141"; 
 	//private static final String TEMPLATECODE="SMS_184631147";
 	//签名名称
 	private static final String SIGNNAME="XS系统";
